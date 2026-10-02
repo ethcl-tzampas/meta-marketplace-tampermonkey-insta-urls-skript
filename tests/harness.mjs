@@ -2,7 +2,7 @@ import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
 
 export const SKRIPT = new URL('../postfach-markierungen.user.js', import.meta.url);
-export const LISTE = '9000000000007224';
+export const LISTE = '900000000001';
 export const SPACE = '90000000845';
 export const TAG = 'follow-up';
 

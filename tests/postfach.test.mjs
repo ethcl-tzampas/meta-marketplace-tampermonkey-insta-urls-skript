@@ -557,14 +557,14 @@ gruppe('Die Inhalte-Seite wird mit dem richtigen Konto geöffnet');
 {
   const { doc, w } = await starte({
     speicher: MIT_CLICKUP,
-    pfad: '/latest/inbox/all/?asset_id=9000000000004212&business_id=9000000000001702&partnership_messages=true',
+    pfad: '/latest/inbox/all/?asset_id=2222222222222222&business_id=1111111111111111&partnership_messages=true',
   });
   klick(w, knopf(doc, 'Inhalte-Seite öffnen'));
   const url = (w.__geoeffnet || [])[0] || '';
-  pruefe('Business wird mitgegeben', /business_id=9000000000001702/.test(url), url);
-  pruefe('Asset wird mitgegeben', /asset_id=9000000000004212/.test(url), url);
+  pruefe('Business wird mitgegeben', /business_id=1111111111111111/.test(url), url);
+  pruefe('Asset wird mitgegeben', /asset_id=2222222222222222/.test(url), url);
   pruefe('Seite wird als Asset vorausgewählt',
-    /selected_business_page_id=9000000000004212/.test(url), url);
+    /selected_business_page_id=2222222222222222/.test(url), url);
   pruefe('Nach Datum sortiert', /sort_index=upac_publish_time/.test(url), url);
 }
 
