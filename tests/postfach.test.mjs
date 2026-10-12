@@ -2241,6 +2241,50 @@ gruppe('Im alten Postfach gibt es den Filter nicht');
   pruefe('Der Filterknopf ist ausgeblendet', !f || f.hidden === true, String(f && f.hidden));
 }
 
+gruppe('Ein langer Einzelname wird zugeordnet, ein kurzer Vorname nicht');
+{
+  // „GretaLarissa" ist ein Wort, aber kein Handle — Grossbuchstaben. Zwoelf
+  // Zeichen reichen trotzdem, um dafuer geradezustehen. „Wolle" nicht.
+  const { doc, w, serverTasks } = await starte({
+    speicher: MIT_CLICKUP,
+    ig: [
+      { id: '90000000000007280', titel: 'GretaLarissa', vorschau: 'Hallo', zeit: '3h' },
+      { id: '90000000000007281', titel: 'Wolle', vorschau: 'Hallo', zeit: '4h' },
+    ],
+    tasks: [
+      { id: 'a1', name: 'gretakiefler — GretaLarissa', status: 'erste ware versendet', farbe: '#b660e0',
+        beschreibung: 'aus UpPromote\nigfu-handle: gretakiefler' },
+      { id: 'a2', name: 'wolle__47 — Wolle', status: 'angeschrieben', farbe: '#87909e',
+        beschreibung: 'aus UpPromote\nigfu-handle: wolle__47' },
+    ],
+  });
+  klick(w, doc.querySelector('#igfu-refresh'));
+  await warte(w, 3000);
+  pruefe('GretaLarissa wird verbunden',
+    /igfu-thread:\s*90000000000007280/.test(serverTasks[0].beschreibung || ''), serverTasks[0].beschreibung);
+  pruefe('Wolle bleibt unverbunden',
+    !/igfu-thread/.test(serverTasks[1].beschreibung || ''), serverTasks[1].beschreibung);
+}
+
+gruppe('Zwei gleich lange Einzelnamen bleiben unzugeordnet');
+{
+  const { doc, w, serverTasks } = await starte({
+    speicher: MIT_CLICKUP,
+    ig: [{ id: '90000000000007282', titel: 'Sonnenschein', vorschau: 'Hallo', zeit: '3h' }],
+    tasks: [
+      { id: 'a1', name: 'erste.person — Sonnenschein', status: 'ongeboardet', farbe: '#b660e0',
+        beschreibung: 'x\nigfu-handle: erste.person' },
+      { id: 'a2', name: 'zweite.person — Sonnenschein', status: 'ongeboardet', farbe: '#b660e0',
+        beschreibung: 'x\nigfu-handle: zweite.person' },
+    ],
+  });
+  klick(w, doc.querySelector('#igfu-refresh'));
+  await warte(w, 3000);
+  pruefe('Keiner der beiden wird verbunden',
+    !/igfu-thread/.test(serverTasks[0].beschreibung || '') && !/igfu-thread/.test(serverTasks[1].beschreibung || ''),
+    JSON.stringify([serverTasks[0].beschreibung, serverTasks[1].beschreibung]));
+}
+
 console.log('\n' + (fehlgeschlagen
   ? `${fehlgeschlagen} von ${gelaufen} Prüfungen fehlgeschlagen`
   : `Alle ${gelaufen} Prüfungen bestanden`));
