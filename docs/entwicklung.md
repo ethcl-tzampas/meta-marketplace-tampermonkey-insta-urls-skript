@@ -190,8 +190,8 @@ Tasks ohne Handle, jeweils mit Eingabefeld. An der Pille steht zusätzlich
 > überhaupt nicht vorhanden. Das Anlegen läuft deshalb immer durch; der Handle
 > kommt nach.
 
-**Einwortige Namen gelten nur klein geschrieben als Handle.** `feldpedal` und
-`hansk.stelz` sind Handles, `Wolle` und `Sophie` sind Vornamen. Ohne diese
+**Einwortige Namen gelten nur klein geschrieben als Handle.** `stadtpedal` und
+`hansk.stelz` sind Handles, `Timo` und `Sophie` sind Vornamen. Ohne diese
 Schranke hielt `handleAusTaskname` jeden einwortigen Anzeigenamen für einen
 Handle, machte daraus kleingeschrieben einen Suchschlüssel und nahm solche
 Tasks aus der Lücken-Erkennung heraus — sie galten als versorgt, obwohl der
@@ -279,7 +279,7 @@ Name, Vorschau, Zeit und Lesestatus stehen dagegen nicht in den Props, sondern
 nur im Relay-Speicher. Gerendert liegen sie als Zeilen im Text der Zeile:
 
 ```
-[0] Name          „feldpedal"
+[0] Name          „stadtpedal"
 [1] Vorschau      „You: …" | „Liked a message" | „3 new messages"
 [2] Relativzeit   „10m" | „6h" | „3d" | „2w"
 [3] „Unread"      nur wenn ungelesen
@@ -353,6 +353,7 @@ Verbunden wird über Markerzeilen in der **Task-Beschreibung**:
 ```
 igfu-thread: <kennung>      Unterhaltung im Postfach der Business Suite
 igfu-ig:     <kennung>      Unterhaltung auf instagram.com
+igfu-iguser: <id>           Instagram-Benutzer-ID — der führende Schlüssel
 igfu-handle: <handle>       Task ↔ UpPromote, Content, Marketplace
 igfu-bild:   <bildID>       im Marketplace erfasster Task ↔ Unterhaltung
 igfu-mail:   <adresse>      Task ↔ Shopify-Bestellung
@@ -375,6 +376,10 @@ wurde. Verbunden wird nachträglich, und zwar über zwei Wege in dieser Reihenfo
 ```
 Unterhaltung im Postfach
         │
+        ├── Benutzer-ID?     ──ja──► Task mit gleichem igfu-iguser   (verbinden-handle)
+        │   (props.threadRef
+        │    .users[0].id)
+        │
         ├── Handle bekannt?  ──ja──► Task mit gleichem igfu-handle   (verbinden-handle)
         │   (Vorschautext,
         │    Kontaktkarte)
@@ -382,13 +387,31 @@ Unterhaltung im Postfach
         └── nein ──► Anzeigename  ──► Task mit gleichem Namen        (Namensbrücke)
 ```
 
+#### Warum die Benutzer-ID ganz oben steht
+
+Sie ist die einzige Angabe, die **nicht aus gelesenem Seitentext** stammt,
+sondern aus den Props der Zeile. Am 14.10.2026 an der echten Liste gemessen:
+
+* `users` trägt in beiden Postfächern **genau einen** Eintrag, und nie das
+  eigene Konto — in den Partner-Nachrichten wie in den normalen DMs.
+* Die ID bleibt über ein Neuladen gleich; zwei Durchläufe lieferten
+  byte-identische Listen.
+* Für dieselbe Person ist sie in beiden Ordnern dieselbe, obwohl die
+  Thread-Kennungen verschieden sind. An der echten Liste nachgemessen: eine
+  Affiliate mit zwei Unterhaltungen, zwei Kennungen, eine Benutzer-ID. Über
+  den Namen wäre das nicht zu entscheiden gewesen — über die ID fällt es von
+  selbst zusammen.
+
+Einmal gesetzt, wird sie nie überschrieben: es gibt keine bessere Quelle, die
+sie korrigieren könnte.
+
 #### Wie verglichen wird — an der echten Liste entwickelt
 
 `namensform()` faltet beide Seiten auf eine vergleichbare Form:
 
 ```
 normalize('NFKD')  →  Schmuckschrift wird zu schlichten Buchstaben
-\p{M} entfernen    →  „Wäschle" und „Waschle" werden gleich
+\p{M} entfernen    →  „Wäschl" und „Waschl" werden gleich
 toLowerCase        →  Großschreibung spielt keine Rolle
 [^\p{L}\p{N}] → ' ' →  Satzzeichen, Emoji, Striche fallen weg
 ```
@@ -401,21 +424,21 @@ echten Liste geprüft:
 | Anzeigename bei Meta | gelesen als |
 |---|---|
 | `𝒟ℴ𝓇ℯ𝓉𝓉𝒶` | `doretta` |
-| `𝗞𝗶𝗮𝗿𝗮 𝗪𝗲𝗻𝗱𝗹𝗲𝗿` | `kiara wendler` |
-| `Z a B e \| Zabian Mukembo` | `z a b e zabian mukembo` |
+| `𝗟𝗶𝘀𝗮 𝗙𝗲𝗹𝗯𝗲𝗿` | `lisa felber` |
+| `N o R d \| Nordin Makuba` | `z a b e nordin makuba` |
 | `ᴀɴᴊᴀ` | `ᴀɴᴊᴀ` — Kapitälchen haben keine Entsprechung |
 
 Verglichen wird dann auf drei Wegen:
 
-1. **Beide Namen sind gleich.** `Anna Bolko NRNS` ↔ `anna_bolko_cali — Anna Bolko NRNS`
+1. **Beide Namen sind gleich.** `Mara Kell NRNS` ↔ `anna_bolko_cali — Mara Kell NRNS`
 2. **Alle Wortteile des Task-Namens kommen im Titel vor.** Instagram-Namen
    tragen Beiwerk, das in ClickUp nicht steht:
-   `Z a B e | Zabian Mukembo` ↔ `zabefit_ — Zabian Mukembo`
-3. **Der Titel ist selbst ein Handle.** `feldpedal` ↔ Task `feldpedal`
+   `N o R d | Nordin Makuba` ↔ `nordfit_ — Nordin Makuba`
+3. **Der Titel ist selbst ein Handle.** `stadtpedal` ↔ Task `stadtpedal`
 4. **Ein einzelnes Wort, das lang genug ist, um dafür geradezustehen.**
-   `GretaLarissa` ↔ `gretakiefler — GretaLarissa`. Die Grenze liegt bei acht
+   `HildaLarissa` ↔ `hildakiefler — HildaLarissa`. Die Grenze liegt bei acht
    Zeichen: ein zwölfstelliger Fantasiename gibt es einmal, ein fünfstelliger
-   Vorname wie `Wolle` passt auf jeden Zweiten.
+   Vorname wie `Timo` passt auf jeden Zweiten.
 
 Die beiden Schranken bleiben: ein **einzelnes Wort** zählt nur, wenn es als
 Handle geschrieben ist — geprüft am unveränderten Titel, nicht an der
@@ -433,7 +456,7 @@ Verglichen wird über `namensform()`: Kleinschreibung, Satzzeichen und Emoji
 fallen weg, mehrfache Leerzeichen werden zu einem. Zwei Schranken verhindern,
 dass geraten wird:
 
-1. **Mindestens zwei Wortteile.** Ein einzelner Vorname („Wolle") passt in jeder
+1. **Mindestens zwei Wortteile.** Ein einzelner Vorname („Timo") passt in jeder
    Liste auf mehrere Leute.
 2. **Genau ein passender Task.** Bei zwei Treffern bleibt die Unterhaltung
    unverbunden — eine Wahl wäre geraten.
@@ -484,7 +507,7 @@ Bis 6.8 stand jede Unterhaltung unter `igfu-thread:`, und woher sie stammte,
 wurde an der **Länge** der Kennung abgelesen: 39 Stellen hieß Business Suite,
 kürzer hieß Instagram.
 
-**Die Annahme war falsch.** Am 13.10.2026 widerlegt an `diastole_`:
+**Die Annahme war falsch.** Am 13.10.2026 widerlegt an `nachtruhe_`:
 `9000000000007942` ist 16-stellig und stammt trotzdem aus dem alten Postfach.
 Der daraus gebaute Instagram-Link öffnete nur den Posteingang, keine
 Unterhaltung — und in der Umzugsliste fehlte der Task, weil er als längst
@@ -575,7 +598,7 @@ ihn her: im Gesprächskopf steht ein Profillink.
 
 ```
 /direct/t/900000000006652/   ← die Kennung, in der Adresse
-/hey.mila/                   ← der Handle, im Gesprächskopf
+/hey.mira/                   ← der Handle, im Gesprächskopf
 ```
 
 Vom eigenen Konto unterscheidet er sich daran, dass er **Text trägt**. Die Links
@@ -584,7 +607,7 @@ in der linken Leiste sind reine Symbole. Am 13.10.2026 nachgemessen:
 | Link | x | Text |
 |---|---|---|
 | `/tzampasfood/` | 12 | — |
-| `/hey.mila/` | 488 | „Anja\nhey.mila" |
+| `/hey.mira/` | 488 | „Anja\nhey.mira" |
 
 `igOffeneUnterhaltung()` liest beides aus, `karteAuslesen()` ruft es alle drei
 Sekunden auf und verbindet sofort. **Damit braucht es keinen Namensvergleich
@@ -802,7 +825,7 @@ nutzen denselben Link.
 bekommen keine Pillen.
 
 **Dieselbe Person kann zwei Unterhaltungen haben**, eine als Partner-Nachricht
-und eine als normale DM — bei feldpedal, Kiara Wendler und Siri ist das so.
+und eine als normale DM — bei stadtpedal, Lisa Felber und Siri ist das so.
 Werden beide markiert, entstehen zwei Tasks. Verboten wird das nicht, es gibt
 auch echte Fälle mit zwei getrennten Gesprächen, aber `cuTaskSichern` warnt.
 
@@ -935,7 +958,7 @@ weiter. Vorher lief das absichtlich nebenher, damit das Anlegen nicht wartet —
 nur kann `cuTaskSichern()` ohne Handle nicht erkennen, dass es zu dieser Person
 längst einen Task gibt, und legt einen zweiten an. Bei Bernhard wäre das
 passiert: die Zeile heißt im Postfach „Bernhard | Laufen & Trailrunning", der
-Task „lauf\_kelti\_lauf — Bernhard Keltrapp". Der gesparte Augenblick ist eine
+Task „lauf\_kalti\_lauf — Bernard Kaltrapp". Der gesparte Augenblick ist eine
 Dublette im CRM nicht wert.
 
 **Zwei Zahlen, die leicht verwechselt werden.** `threadRows()` liefert die
