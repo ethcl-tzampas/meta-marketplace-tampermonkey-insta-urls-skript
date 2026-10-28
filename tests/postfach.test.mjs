@@ -3797,6 +3797,64 @@ gruppe('Notizen: der Status ist dort nicht mehr doppelt');
   pruefe('Oben gibt es den Status', !!doc.querySelector('.igfu-kopf [data-kind="crm"]'));
 }
 
+gruppe('Kopfleiste: auch in einer Partner-Unterhaltung');
+{
+  // Am 28.10.2026 an lunaa_sophie gefunden und als systematisch bestaetigt:
+  // in Partner-Unterhaltungen steht der Name ein zweites Mal im Verlauf, auf
+  // der Profilkarte ganz oben. Damit blieben zwei Kandidaten uebrig, die
+  // Regel „genau einer, sonst gar nichts" griff, und die Kopfleiste fehlte in
+  // *jeder* Partner-Unterhaltung. Notizen und Handle waren da — deshalb fiel
+  // es als „wird nicht erkannt" auf.
+  const { doc, w } = await starte({
+    speicher: MIT_CLICKUP,
+    tags: ['follow-up', 'ambassador'],
+    ig: [{ id: '9000000000008926', titel: 'LUNA', vorschau: 'a', zeit: '2h', postfach: 'partner' }],
+    igOffen: { tid: '9000000000008926', handle: 'lunaa_sophie', titel: 'LUNA', partner: true },
+    tasks: [{ id: 'a1', name: 'lunaa_sophie — LUNA', status: 'erste ware versendet',
+              farbe: '#b660e0', tags: ['ambassador'],
+              beschreibung: 'x\nigfu-ig: 9000000000008926\nigfu-handle: lunaa_sophie' }],
+  });
+  await warte(w, 3500);
+  const leiste = doc.querySelector('.igfu-kopf');
+  pruefe('Die Leiste ist da', !!leiste);
+  pruefe('Genau eine', doc.querySelectorAll('.igfu-kopf').length === 1,
+    String(doc.querySelectorAll('.igfu-kopf').length));
+  pruefe('Sie haengt an der Unterhaltung', leiste && leiste.dataset.tid === '9000000000008926',
+    leiste && leiste.dataset.tid);
+  pruefe('Sie sitzt am Kopf, nicht an der Karte im Verlauf',
+    !!(leiste && leiste.previousElementSibling
+      && leiste.previousElementSibling.getAttribute('role') === 'button'),
+    leiste && leiste.previousElementSibling && leiste.previousElementSibling.getAttribute('role'));
+  const crm = leiste && leiste.querySelector('[data-kind="crm"]');
+  pruefe('Mit dem Status', crm && crm.textContent === 'erste ware versendet', crm && crm.textContent);
+  pruefe('Und den Tags', !!(leiste && leiste.querySelector('[data-kind="tag"]')));
+}
+
+gruppe('Kopfleiste: zwei verschiedene Namen bleiben eine Absage');
+{
+  // Die Schranke darf nicht aufweichen. Haben die Kandidaten verschiedene
+  // Namen, ist nicht entscheidbar, wer gemeint ist — dann lieber keine
+  // Leiste als eine an der falschen Person.
+  const { doc, w } = await starte({
+    speicher: MIT_CLICKUP,
+    ig: [{ id: '900000000001472', titel: 'Floris', vorschau: 'a', zeit: '2h' }],
+    igOffen: { tid: '900000000001472', handle: 'reimann_floris', titel: 'Floris Reimann' },
+  });
+  await warte(w, 2500);
+  // Eine zweite Ueberschrift mit *anderem* Namen, ebenfalls unter einem
+  // bedienbaren Element — so wie es der Kopf waere.
+  const stoerer = doc.createElement('div');
+  stoerer.setAttribute('role', 'button');
+  stoerer.innerHTML = '<div><div><h2><span>Jemand Anderes</span></h2></div></div>';
+  doc.body.appendChild(stoerer);
+  const vorher = doc.querySelectorAll('.igfu-kopf').length;
+  pruefe('Vorher war die Leiste da', vorher === 1, String(vorher));
+  await warte(w, 2500);
+  pruefe('Mit zwei verschiedenen Namen wird nichts eingehaengt',
+    doc.querySelectorAll('.igfu-kopf').length === 0,
+    String(doc.querySelectorAll('.igfu-kopf').length));
+}
+
 console.log('\n' + (fehlgeschlagen
   ? `${fehlgeschlagen} von ${gelaufen} Prüfungen fehlgeschlagen`
   : `Alle ${gelaufen} Prüfungen bestanden`));
