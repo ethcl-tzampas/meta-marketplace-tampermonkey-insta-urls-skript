@@ -1442,6 +1442,21 @@ Meta räumt den Seitenspeicher beim Laden auf.
 
 Beide tragen `@updateURL` und `@downloadURL`, aktualisieren sich also selbst.
 
+> **Seit 9.8 stimmt das für das Postfach-Skript auch wirklich.** Von 8.0 bis 9.7
+> zeigten seine `@updateURL` und `@downloadURL` nicht auf `main`, sondern auf den
+> Arbeitsbranch `vorlagen-im-hauptskript` — während diese Anleitung schon immer
+> `.../main/...` nannte. Der Widerspruch war nicht harmlos: er machte jede
+> Aussage darüber, was im Browser liegt, zur Rückfrage an die falsche Adresse,
+> und er hängte die Auslieferung an einen Feature-Branch, dessen Löschen die
+> Updates stumm beendet hätte.
+>
+> **Die Reihenfolge beim Umstellen ist nicht beliebig.** Das installierte Skript
+> fragt die *alte* Adresse, also muss die Änderung zuerst auf dem Branch liegen
+> und von dort ausgeliefert werden; erst diese Fassung lenkt auf `main` um. Wird
+> zuerst `main` bedient, erfährt das installierte Skript nie davon. Deshalb:
+> Branch pushen, dann `main` per Fast-Forward nachziehen, beide auf denselben
+> Commit.
+
 > **Nie löschen und neu installieren.** Der GM-Speicher hängt an Name und
 > Namespace; beim Löschen gehen Token und Markierungen mit.
 

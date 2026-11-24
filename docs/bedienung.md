@@ -98,6 +98,12 @@ Install-Link überein, hat Tampermonkey das Update nicht gezogen — dann ist je
 weitere Fehlersuche verschwendet. Ein Tab, der schon vor dem Update offen war,
 zeigt übrigens den alten Stand; vor jeder Messung neu laden.
 
+> **Welcher Install-Link gilt?** Ab 9.8 der auf `main`. Von 8.0 bis 9.7 holte
+> Tampermonkey das Postfach-Skript vom Arbeitsbranch `vorlagen-im-hauptskript` —
+> wer in dieser Zeit gegen `main` verglichen hat, verglich mit der falschen
+> Datei. Das Update auf 9.8 kommt noch über die alte Adresse; danach zieht
+> Tampermonkey von `main`.
+
 Darunter steht die Liste **„Unterhaltungen ohne Task"**: jede erkannte
 Unterhaltung, die noch nicht mit ClickUp verbunden ist, mit dem Namen **so, wie
 das Skript ihn liest**, und dahinter entweder ein Treffer oder „kein Treffer".

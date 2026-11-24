@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         Postfach: eigene Markierungen
 // @namespace    local.inbox-followups
-// @version      9.7
+// @version      9.8
 // @description  Eigene Follow-up-Markierungen in den Instagram-Nachrichten, dazu die Anbindung an ClickUp und das Erfassen von Creatorn im Creator Marketing Hub.
 // @match        https://business.facebook.com/*
 // @match        https://www.instagram.com/*
 // @run-at       document-idle
-// @updateURL    https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/vorlagen-im-hauptskript/postfach-markierungen.user.js
-// @downloadURL  https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/vorlagen-im-hauptskript/postfach-markierungen.user.js
+// @updateURL    https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-markierungen.user.js
+// @downloadURL  https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-markierungen.user.js
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addValueChangeListener
@@ -35,6 +35,19 @@
 // Hinweis zu Updates: Tampermonkey holt neue Versionen automatisch von GitHub
 // (@updateURL). Manuell: Tampermonkey-Menü → „Nach Userscript-Updates suchen".
 // Der Speicher gehört zum installierten Skript und bleibt bei Updates erhalten.
+//
+// Seit 9.8 zeigen @updateURL und @downloadURL auf `main`. Vorher stand dort seit
+// 8.0 der Arbeitsbranch `vorlagen-im-hauptskript` — die Auslieferung hing damit
+// an einem Feature-Branch, und ein Loeschen des Branches nach einem Merge haette
+// die Updates stumm abbrechen lassen. Dass die Doku von Anfang an `.../main/...`
+// nannte, machte es nicht besser, sondern nur schwerer zu bemerken: am
+// 24.11.2026 wurde daraus zweimal die falsche Auskunft „im Browser ist der
+// Stand von `main`".
+//
+// Die Umstellung musste zuerst auf dem **Branch** landen, nicht auf `main`: das
+// installierte Skript fragte noch die Branch-Adresse, also ist die letzte von
+// dort ausgelieferte Fassung diejenige, die auf `main` umlenkt. Beide Zweige
+// stehen danach auf demselben Commit.
 
 (function () {
   'use strict';
@@ -432,7 +445,7 @@
   // Muss mit @version im Kopf uebereinstimmen; ein Test prueft das. Sie steht
   // im Panel, weil „habe ich eigentlich die neue Fassung?" sonst jedes Mal
   // Ratearbeit ist — und zweimal schon in die falsche Richtung gefuehrt hat.
-  const VERSION = '9.7';
+  const VERSION = '9.8';
   const INBOX_PATH = /^\/latest\/inbox(\/|$)/;
   // Seit Oktober 2026 wird auf instagram.com gearbeitet. Meta hat die
   // Partner-Nachrichten in den Creator Marketing Hub ausgelagert, und der kennt
