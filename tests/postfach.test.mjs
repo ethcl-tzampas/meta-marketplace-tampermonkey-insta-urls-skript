@@ -5204,6 +5204,162 @@ gruppe('Partner-Ordner: der geschriebene Link zeigt in den Partner-Ordner');
     JSON.stringify(mitLink).slice(0, 200));
 }
 
+// ---------- 9.9: Einstellungs-Formular und Tag-Abgleich ----------
+
+gruppe('Tag-Abgleich nimmt Tags auf, die nur an Tasks hängen');
+{
+  // Der Kern der Sache. Bis 9.8 war die Space-Liste die einzige Quelle fuer
+  // das Tag-Menue. Haengt ein Tag an einem Task, ohne im Space gemeldet zu
+  // sein — was ClickUp beim Verschieben eines Tasks zwischen Spaces erzeugt —,
+  // war er im Menue fuer immer unsichtbar.
+  //
+  // Der Pruefstand kann den Fall abbilden: `tags` ist die Space-Liste,
+  // `tasks[].tags` sind die am Task haengenden. Hier melden sie absichtlich
+  // Verschiedenes.
+  const { doc, w, store } = await starte({
+    speicher: MIT_CLICKUP,
+    tags: [TAG],
+    tasks: [{ id: 'a1', name: 'Mara Kell', status: 'angeschrieben', farbe: '#87909e',
+              beschreibung: beschreibungMit('T1'), tags: [TAG, 'aus-anderem-space'] }],
+  });
+  await klickKnopf(w, doc, 'Tags mit ClickUp abgleichen');
+  await warte(w, 3000);
+  const liste = (store.get('clickup:tagliste:v1') || []).map((t) => t.name);
+  pruefe('Der Tag aus dem Space steht zur Auswahl', liste.includes(TAG), JSON.stringify(liste));
+  pruefe('Der Tag, der nur am Task hängt, steht auch zur Auswahl',
+    liste.includes('aus-anderem-space'), JSON.stringify(liste));
+  // Ein gepufferter Stand ohne Zeitpunkt veraltet stumm — dieselbe Falle, die
+  // am 10.11.2026 „low potential" verschluckt hat.
+  pruefe('Die Liste bekommt einen Stand',
+    Number(store.get('clickup:tagliste:stand:v1')) > 0,
+    String(store.get('clickup:tagliste:stand:v1')));
+}
+
+gruppe('Tag-Abgleich: der Tag taucht danach im Menü der Unterhaltung auf');
+{
+  // Die Gegenprobe am sichtbaren Ende: nicht nur im Speicher, sondern in dem
+  // Menue, aus dem Josia auswaehlt.
+  const { doc, w } = await starte({
+    speicher: MIT_CLICKUP,
+    tags: [TAG],
+    ig: [{ id: 'IG1', titel: 'Mara Kell', vorschau: 'Hallo', zeit: '2h' }],
+    igOffen: { tid: 'IG1', handle: 'marakell.runs', titel: 'Mara Kell' },
+    tasks: [{ id: 'a1', name: 'marakell.runs — Mara Kell', status: 'angeschrieben', farbe: '#87909e',
+              beschreibung: 'igfu-ig: IG1\nigfu-handle: marakell.runs', tags: ['nur-am-task'] }],
+  });
+  await warte(w, 4000);
+  const plus = doc.querySelector('.igfu-kopf .igfu-tag[data-kind="tagmenue"]');
+  pruefe('Das Tag-Menü ist da', !!plus);
+  if (plus) {
+    klick(w, plus);
+    await warte(w, 300);
+    const eintraege = [...doc.querySelectorAll('.igfu-menue-text')].map((e) => e.textContent);
+    pruefe('Der nur am Task hängende Tag steht im Menü',
+      eintraege.includes('nur-am-task'), JSON.stringify(eintraege));
+  }
+}
+
+gruppe('Tag-Abgleich meldet einen Fehler, statt ihn zu verschlucken');
+{
+  // Bis 9.8 hing der einzige Aufruf an einem .catch(() => {}). Ein abgelaufener
+  // Token blieb damit stumm, und die alte Liste sah aus wie eine frische.
+  const { doc, w } = await starte({
+    speicher: MIT_CLICKUP,
+    tasks: [{ id: 'a1', name: 'Mara Kell', status: 'angeschrieben', farbe: '#87909e',
+              beschreibung: beschreibungMit('T1'), tags: [] }],
+    fehler: (methode, pfad) =>
+      (methode === 'GET' && /^\/space\/[^/]+\/tag$/.test(pfad) ? 'token' : null),
+  });
+  await klickKnopf(w, doc, 'Tags mit ClickUp abgleichen');
+  await warte(w, 3000);
+  const t = doc.querySelector('#igfu-toast');
+  pruefe('Der Fehler steht im Hinweis', /^Tags: /.test(t.textContent), t.textContent);
+}
+
+gruppe('Das Einstellungs-Formular ist geordnet und vollständig');
+{
+  const { doc, w } = await starte({ speicher: MIT_CLICKUP });
+  await warte(w, 1500);
+  const form = doc.querySelector('.igfu-form');
+  const gruppen = [...form.querySelectorAll('.igfu-form-gruppe')];
+  pruefe('Es gibt fünf Abschnitte', gruppen.length === 5,
+    gruppen.map((g) => g.querySelector('.igfu-form-gruppe-titel, summary').textContent).join(' | '));
+  const alle = [...form.querySelectorAll('button')];
+  const heimatlos = alle.filter((b) => !b.closest('.igfu-form-gruppe'));
+  pruefe('Kein Knopf steht ausserhalb eines Abschnitts', heimatlos.length === 0,
+    heimatlos.map((b) => b.textContent).join(', '));
+  // Jeder Knopf genau einmal: beim Umsortieren ist genau das die Gefahr.
+  const namen = alle.map((b) => b.textContent);
+  pruefe('Kein Knopf doppelt', new Set(namen).size === namen.length, JSON.stringify(namen));
+  const klappe = form.querySelector('.igfu-form-klappe');
+  pruefe('Die einmaligen Reparaturen stehen zugeklappt', !!klappe && !klappe.open);
+  const drin = klappe ? [...klappe.querySelectorAll('button')].map((b) => b.textContent) : [];
+  pruefe('Hinter der Klappe stehen genau die drei Altlasten',
+    drin.length === 3
+    && drin.includes('Kennungen richtigstellen')
+    && drin.includes('Alte Postfach-Links entfernen')
+    && drin.includes('Anschreib-Links nachtragen'),
+    JSON.stringify(drin));
+  // „Schreibt in ClickUp" muss am Abschnitt ablesbar sein, nicht nur im
+  // Hilfetext des einzelnen Knopfes.
+  const schreibt = [...form.querySelectorAll('.igfu-form-gruppe[data-art="schreibt"] button')]
+    .map((b) => b.textContent);
+  pruefe('Die schreibende Gruppe ist als solche markiert',
+    schreibt.includes('Namen richtigstellen') && schreibt.includes('Fehlende Fristen nachtragen'),
+    JSON.stringify(schreibt));
+  pruefe('Und der Knopf im Kopf heisst nicht mehr „ClickUp"',
+    [...doc.querySelectorAll('.igfu-head-actions button')].some((b) => b.textContent === 'Einstellungen')
+    && ![...doc.querySelectorAll('.igfu-head-actions button')].some((b) => b.textContent === 'ClickUp'));
+}
+
+gruppe('Formular und Liste scrollen in sich, das Panel schneidet nichts ab');
+{
+  // jsdom rechnet kein Layout — pruefbar ist deshalb die Zusage, nicht das
+  // Ergebnis. Genau diese drei Regeln waren am 25.11.2026 die Ursache: das
+  // Panel stand auf overflow: visible, und beide Kinder hatten das
+  // voreingestellte min-height: auto, konnten also nicht schrumpfen. Das
+  // 706 px hohe Formular hing aus dem 596 px hohen Panel heraus, 104 px davon
+  // unter dem Fensterrand.
+  const { doc, w } = await starte({ speicher: MIT_CLICKUP });
+  await warte(w, 1200);
+  const css = [...doc.querySelectorAll('style')].map((s) => s.textContent).join('\n')
+    .replace(/\s+/g, ' ');
+  pruefe('Das Panel klippt seinen Inhalt',
+    /#igfu-panel \{[^}]*overflow: hidden/.test(css));
+  pruefe('Das Formular scrollt in sich',
+    /\.igfu-form \{[^}]*overflow-y: auto/.test(css) && /\.igfu-form \{[^}]*min-height: 0/.test(css));
+  pruefe('Die Liste scrollt in sich',
+    /\.igfu-body \{[^}]*overflow-y: auto[^}]*min-height: 0/.test(css));
+  // Ohne diesen Faktor schrumpfen Liste und Formular im Verhaeltnis ihrer
+  // Hoehen — das Formular landete dabei bei 48 px.
+  pruefe('Beim Schrumpfen weicht die Liste, nicht das Formular',
+    /\.igfu-body \{[^}]*flex-shrink: 100/.test(css));
+}
+
+gruppe('Anschreib-Links: die Partner-Adressform gilt als vorhandener Link');
+{
+  // Am 25.11.2026 im Bestand gefunden: nelly.schulte.1111 und theveganvillage
+  // galten als „ohne Link", weil ihre Unterhaltung im Partner-Ordner liegt und
+  // die Adresse dort „/direct/partnerships/t/" lautet. Der Knopf haette ihnen
+  // einen ig.me-Link neben den laengst funktionierenden gesetzt.
+  const { doc, w, serverTasks } = await starte({
+    speicher: MIT_CLICKUP,
+    tasks: [
+      { id: 'p1', name: 'im.partner — Partner', status: 'ongeboardet', farbe: '#b660e0',
+        beschreibung: '[Unterhaltung auf Instagram öffnen](https://www.instagram.com/direct/partnerships/t/90000000000007278/)\nigfu-handle: im.partner' },
+      { id: 'p2', name: 'ganz.ohne — Ohne', status: 'ongeboardet', farbe: '#b660e0',
+        beschreibung: 'nichts weiter\nigfu-handle: ganz.ohne' },
+    ],
+  });
+  await klickKnopf(w, doc, 'Anschreib-Links nachtragen');
+  await warte(w, 2500);
+  pruefe('Der Partner-Task bleibt unberührt',
+    !/ig\.me/.test(serverTasks[0].beschreibung || ''), serverTasks[0].beschreibung);
+  pruefe('Der Task ganz ohne Link bekommt trotzdem einen',
+    (serverTasks[1].beschreibung || '').includes('https://ig.me/m/ganz.ohne'),
+    serverTasks[1].beschreibung);
+}
+
 console.log('\n' + (fehlgeschlagen
   ? `${fehlgeschlagen} von ${gelaufen} Prüfungen fehlgeschlagen`
   : `Alle ${gelaufen} Prüfungen bestanden`));

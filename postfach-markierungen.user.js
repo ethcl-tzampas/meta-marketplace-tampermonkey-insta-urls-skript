@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Postfach: eigene Markierungen
 // @namespace    local.inbox-followups
-// @version      9.8
+// @version      9.9
 // @description  Eigene Follow-up-Markierungen in den Instagram-Nachrichten, dazu die Anbindung an ClickUp und das Erfassen von Creatorn im Creator Marketing Hub.
 // @match        https://business.facebook.com/*
 // @match        https://www.instagram.com/*
@@ -157,10 +157,19 @@
     #igfu-tipp li { margin: 2px 0; }
     #igfu-tipp .igfu-tipp-fuss { margin-top: 8px; color: #b9c3c9; }
 
+    /* overflow: hidden ist hier der eigentliche Schutz. Bis 9.8 stand das
+       Panel auf overflow: visible: das Einstellungs-Formular ist mit allen
+       16 Knoepfen 706 px hoch, das Panel darf nur 596 px (72vh bei einem
+       828 px hohen Fenster) — die Differenz hing unten aus dem Kasten heraus
+       und lag 104 px unter dem Fensterrand. Dort kam niemand hin, weil
+       gescrollt nur .igfu-body wird, und das Formular haengt daneben. Josia
+       hat am 25.11.2026 genau das gemeldet: „Token loeschen" und die drei
+       Knoepfe darueber waren nicht erreichbar. Am 25.11.2026 an der lebenden
+       Seite nachgemessen. */
     #igfu-panel {
       position: fixed; left: 88px; bottom: 54px; z-index: 2147483000;
       width: 360px; max-height: min(72vh, 640px);
-      display: flex; flex-direction: column;
+      display: flex; flex-direction: column; overflow: hidden;
       background: #fff; color: #1c2b33; font-family: inherit; font-size: 13px;
       border: 1px solid #dadde1; border-radius: 12px;
       box-shadow: 0 10px 30px rgba(0,0,0,.18);
@@ -192,7 +201,21 @@
     .igfu-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 10px 16px; border-bottom: 1px solid #e4e6eb; }
     .igfu-head h2 { margin: 0; font-size: 15px; font-weight: 700; }
     .igfu-head-actions { display: flex; align-items: center; gap: 4px; }
-    .igfu-body { overflow-y: auto; }
+    /* min-height: 0 ist nicht schmueckend. Ein Flex-Element bekommt von sich
+       aus min-height: auto, und das heisst „nie kleiner als mein Inhalt".
+       Beide Kinder konnten deshalb nicht schrumpfen, obwohl sie scrollen
+       duerfen — das Formular ragte unten heraus. Mit min-height: 0 geben sie
+       nach und scrollen in sich selbst.
+
+       flex-shrink: 100 entscheidet, *wer* nachgibt. Flexbox verteilt das
+       Schrumpfen im Verhaeltnis der Ausgangsgroessen: die Liste ist mit ihren
+       ~21000 px um ein Vielfaches hoeher als das Formular mit ~700 px, also
+       schrumpfen beide auf denselben Bruchteil — das Formular landete bei
+       48 px, einem unbrauchbaren Schlitz. Am 25.11.2026 so nachgemessen. Mit
+       dem hohen Faktor weicht erst die Liste ganz, und das Formular bekommt
+       den Platz, den es braucht. Ist das Formular zu, hat die Liste den Panel
+       wieder fuer sich — der Faktor spielt dann keine Rolle mehr. */
+    .igfu-body { overflow-y: auto; min-height: 0; flex-shrink: 100; }
     .igfu-section-title { margin: 0; padding: 12px 16px 4px; font-size: 12px; font-weight: 700; color: #65676b; }
 /* Instagram liefert seine Farben als CSS-Variablen, und zwar als RGB-Tripel
    („12, 16, 20"), nicht als fertige Farben — deshalb rgb(var(--…)). Im
@@ -416,9 +439,30 @@
     }
     .igfu-crm-pille[data-an="1"] { color: #fff; border-color: transparent; }
 
-    .igfu-form { padding: 14px 16px 16px; border-bottom: 1px solid #e4e6eb; background: #f7f8fa; }
+    .igfu-form { padding: 14px 16px 16px; border-bottom: 1px solid #e4e6eb; background: #f7f8fa;
+      overflow-y: auto; min-height: 0; }
     .igfu-form[hidden] { display: none; }
     .igfu-form label { display: block; margin-bottom: 10px; font-size: 12px; font-weight: 600; color: #65676b; }
+
+    /* Die Abschnitte. Die wichtigste Trennung ist die zwischen „liest nur" und
+       „schreibt in ClickUp" — an den schreibenden hat Josia sich zweimal
+       Schaden geholt (Namen aus dem Seitentext, Fristen vor dem Startdatum).
+       Deshalb traegt die schreibende Gruppe einen farbigen Rand und sagt im
+       Titel dazu, was sie tut. */
+    .igfu-form-gruppe { margin-top: 14px; padding-top: 10px; border-top: 1px solid #e4e6eb; }
+    .igfu-form-gruppe:first-of-type { margin-top: 8px; }
+    .igfu-form-gruppe-titel { margin: 0 0 2px; font-size: 11px; font-weight: 700;
+      letter-spacing: .03em; text-transform: uppercase; color: #65676b; }
+    .igfu-form-gruppe-text { margin: 0 0 8px; font-size: 11px; line-height: 1.4; color: #8a8d91; }
+    .igfu-form-gruppe[data-art="schreibt"] { border-top-color: ${PINK}; }
+    .igfu-form-gruppe[data-art="schreibt"] .igfu-form-gruppe-titel { color: ${PINK}; }
+    /* Die einmaligen Reparaturen stehen zugeklappt da. Sie werden gebraucht,
+       aber selten — die Zahlen stehen in docs/bedienung.md. */
+    .igfu-form-klappe > summary { cursor: pointer; font-size: 11px; font-weight: 700;
+      letter-spacing: .03em; text-transform: uppercase; color: #65676b; list-style: none; }
+    .igfu-form-klappe > summary::-webkit-details-marker { display: none; }
+    .igfu-form-klappe > summary::before { content: '▸ '; }
+    .igfu-form-klappe[open] > summary::before { content: '▾ '; }
     .igfu-form input {
       display: block; box-sizing: border-box; width: 100%; margin-top: 4px;
       font: inherit; font-size: 12px; color: #1c2b33;
@@ -445,7 +489,7 @@
   // Muss mit @version im Kopf uebereinstimmen; ein Test prueft das. Sie steht
   // im Panel, weil „habe ich eigentlich die neue Fassung?" sonst jedes Mal
   // Ratearbeit ist — und zweimal schon in die falsche Richtung gefuehrt hat.
-  const VERSION = '9.8';
+  const VERSION = '9.9';
   const INBOX_PATH = /^\/latest\/inbox(\/|$)/;
   // Seit Oktober 2026 wird auf instagram.com gearbeitet. Meta hat die
   // Partner-Nachrichten in den Creator Marketing Hub ausgelagert, und der kennt
@@ -2279,7 +2323,19 @@
           const voll = await cuRequest('GET', '/task/' + t.taskId + '?include_markdown_description=true');
           const bisher = voll.markdown_description || voll.description || '';
           // Schon ein Instagram-Link da? Dann nichts tun.
-          if (/instagram\.com\/direct\/t\//.test(bisher) || /ig\.me\/m\//.test(bisher)) continue;
+          //
+          // Die Partner-Adressform muss mitgezaehlt werden. Eine Unterhaltung
+          // im Partner-Ordner steht als
+          // instagram.com/direct/partnerships/t/<kennung> in der Beschreibung,
+          // und das enthaelt „/direct/t/" nicht. Bis 9.8 galten solche Tasks
+          // deshalb als „hat noch keinen Link" — der Knopf haette ihnen einen
+          // ig.me-Link neben einen laengst funktionierenden Partner-Link
+          // gesetzt. Am 25.11.2026 im Bestand nachgesehen: genau zwei Tasks
+          // (nelly.schulte.1111 und theveganvillage) waren davon betroffen, und
+          // beide waren in Wahrheit versorgt. Mit dieser Zeile findet der
+          // Knopf im Bestand nichts mehr — richtig so.
+          if (/instagram\.com\/direct\/(?:partnerships\/)?t\//.test(bisher)
+            || /ig\.me\/m\//.test(bisher)) continue;
           const zeile = '[Auf Instagram anschreiben](' + anschreibLink(h) + ')';
           await cuRequest('PUT', '/task/' + t.taskId, {
             markdown_description: zeile + '\n\n' + bisher.replace(/^\s+/, ''),
@@ -2850,18 +2906,84 @@
     return Array.isArray(roh) ? roh : [];
   };
   const tagsVeraltet = () => Number(GM_getValue(CU_TAGLISTE_STAND, 0) || 0) < Date.now() - TAGLISTE_FRISCH;
+  // Zweite Quelle: die Tags, die an den Tasks haengen.
+  //
+  // Bis 9.8 war die Space-Liste die einzige Quelle. Das genuegt genau so lange,
+  // wie jeder Tag, der an einem Task haengt, auch im Space gemeldet ist — und
+  // darauf ist kein Verlass. ClickUp traegt einen Tag nicht in den Space des
+  // Ziels nach, wenn ein Task aus einem anderen Space hereingeschoben wird: er
+  // haengt dann am Task und steht in keiner Space-Liste. Im Menue fehlte er
+  // damit fuer immer, obwohl er im CRM sichtbar an einem Task klebt. Genau das
+  // hat Josia am 25.11.2026 gemeldet.
+  //
+  // Am 25.11.2026 nachgemessen: der Space meldet 57 Tags, an Tasks haengen 25,
+  // und alle 25 sind in den 57 enthalten — zu diesem Zeitpunkt fehlte also
+  // keiner. Die Vereinigung ist trotzdem richtig, weil die Space-Liste den
+  // Fall oben prinzipiell nicht abdeckt und niemand merkt, wenn er eintritt.
+  const tagsAusTasks = () => {
+    const raus = [];
+    const gesehen = new Set();
+    for (const t of alleTasks()) {
+      for (const roh of (t && t.tags) || []) {
+        const name = String(roh || '').toLowerCase().trim();
+        if (!name || gesehen.has(name)) continue;
+        gesehen.add(name);
+        raus.push(name);
+      }
+    }
+    return raus;
+  };
+
   async function tagsLaden() {
     const space = cuSpace() || (await cuSpaceLaden());
     const daten = await cuRequest('GET', '/space/' + space + '/tag');
     const liste = (daten.tags || [])
       .map((t) => ({ name: String(t.name || '').toLowerCase().trim(), farbe: t.tag_bg || '' }))
-      .filter((t) => t.name)
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      .filter((t) => t.name);
+    // Die Farbe bleibt leer: ein Tag, den der Space nicht meldet, hat dort auch
+    // keine hinterlegt. Die Pille steht dann in der Grundfarbe da — unschoen,
+    // aber anklickbar, und darum geht es.
+    const imSpace = new Set(liste.map((t) => t.name));
+    for (const name of tagsAusTasks()) {
+      if (imSpace.has(name)) continue;
+      liste.push({ name, farbe: '', nurAmTask: true });
+    }
+    liste.sort((a, b) => a.name.localeCompare(b.name, 'de'));
     if (liste.length) {
       GM_setValue(CU_TAGLISTE, liste);
       GM_setValue(CU_TAGLISTE_STAND, Date.now());
     }
     return liste;
+  }
+
+  // Der Knopf dazu. Bis 9.8 gab es keinen: die Liste wurde ausschliesslich als
+  // Nebenwirkung von kopfLeisteSetzen() geholt — also nur, wenn gerade eine
+  // Unterhaltung offen war, die schon einen Task hat, und nur alle halbe
+  // Stunde. Wer in ClickUp einen Tag anlegt und ihn gleich benutzen will, hatte
+  // keinen Weg, das Nachholen anzustossen.
+  //
+  // Und: tagsLaden() haengt dort an einem .catch(() => {}). Ein abgelaufener
+  // Token oder ein Limit blieben damit vollstaendig stumm — die alte Liste sah
+  // aus wie eine frische. Hier wird der Fehler gesagt.
+  async function tagsAbgleichen() {
+    if (!cuEingerichtet()) { toast('Bitte erst Listen-ID und Token eintragen.'); return; }
+    const vorher = new Set(tagsAusCache().map((t) => t.name));
+    try {
+      toast('Hole die Tags aus ClickUp …');
+      // Erst den Task-Spiegel frischen: die an Tasks haengenden Tags sind die
+      // zweite Quelle, und ein alter Spiegel verschweigt genau die neuen.
+      await cuTasksLaden();
+      const liste = await tagsLaden();
+      const neu = liste.filter((t) => !vorher.has(t.name));
+      const nurAmTask = liste.filter((t) => t.nurAmTask).length;
+      toast(liste.length + ' Tags stehen zur Auswahl'
+        + (neu.length
+          ? ', ' + neu.length + ' neu: ' + neu.map((t) => t.name).join(', ')
+          : ', keiner neu')
+        + (nurAmTask ? ' (' + nurAmTask + ' davon nur an Tasks, nicht im Space).' : '.'));
+    } catch (e) {
+      toast('Tags: ' + e.message);
+    }
   }
 
   // Diese drei vergibt das Skript selbst. Von Hand umschaltbar waeren sie ein
@@ -4617,7 +4739,12 @@
     const closeBtn = button('igfu-close', '×', closePanel, 'Schließen');
     closeBtn.setAttribute('aria-label', 'Schließen');
     actions.append(
-      button('igfu-link', 'ClickUp', () => formularUmschalten(), 'Verbindung zu ClickUp einrichten'),
+      // Hiess bis 9.8 „ClickUp". Josia am 25.11.2026: „Mit Clickup als
+      // Ueberkategorie das macht nicht so wirklich Sinn eigentlich oder?" —
+      // er hat recht, dahinter stehen auch UpPromote, die Meta-API und reine
+      // Anzeigefunktionen. „Einstellungen" war sein eigener Vorschlag.
+      button('igfu-link', 'Einstellungen', () => formularUmschalten(),
+        'Zugänge, Abgleiche und Reparaturen'),
       button('igfu-link', 'Sichern', exportData, 'Alle Markierungen als Datei herunterladen'),
       button('igfu-link', 'Laden', () => fileInput.click(), 'Gesicherte Datei wieder einlesen'),
       fileInput,
@@ -4682,7 +4809,44 @@
     const metaLabel = el('label', '', 'Meta-Token');
     metaLabel.appendChild(metaFeld);
 
-    const knoepfe = el('div', 'igfu-form-knoepfe');
+    // Bis 9.8 hingen alle 16 Knoepfe in einer einzigen flachen Reihe. Josia am
+    // 25.11.2026: „brauchen wir diese ganzen Links/Funktionalitaeten hier
+    // wirklich alle und wenn ja koennen wir das bitte so irgendwo einbauen,
+    // dass es etwas sinnvoller/uebersichtlicher ist."
+    //
+    // Geordnet wird nach dem, was ein Knopf anrichtet, nicht danach, welches
+    // Fremdsystem er anspricht. Die Trennung „liest nur" gegen „schreibt in
+    // ClickUp" ist die wichtigste: bei den schreibenden hat Josia sich zweimal
+    // Schaden geholt — Task-Namen aus dem Seitentext (siehe
+    // namenRichtigstellen) und Fristen vor dem Startdatum.
+    const gruppe = (titel, text, art) => {
+      const g = el('div', 'igfu-form-gruppe');
+      if (art) g.dataset.art = art;
+      g.appendChild(el('p', 'igfu-form-gruppe-titel', titel));
+      if (text) g.appendChild(el('p', 'igfu-form-gruppe-text', text));
+      const k = el('div', 'igfu-form-knoepfe');
+      g.appendChild(k);
+      return { g, k };
+    };
+    // Dasselbe, aber zugeklappt. Fuer die einmaligen Altlasten-Reparaturen:
+    // sie finden noch Arbeit (am 25.11.2026 nachgezaehlt, Zahlen stehen in
+    // docs/bedienung.md), aber man braucht sie fast nie.
+    const klappe = (titel, text) => {
+      const g = el('details', 'igfu-form-gruppe igfu-form-klappe');
+      g.appendChild(el('summary', '', titel));
+      if (text) g.appendChild(el('p', 'igfu-form-gruppe-text', text));
+      const k = el('div', 'igfu-form-knoepfe');
+      g.appendChild(k);
+      return { g, k };
+    };
+
+    const zugang = gruppe('Zugang', 'Liste und Token. Hier wird nur gespeichert und geprüft.');
+    const holen = gruppe('Holen und abgleichen',
+      'Daten aus UpPromote, Meta und ClickUp nachziehen.');
+    const pruefen = gruppe('Prüfen', 'Ändert nichts — stellt nur Fundlisten ins Panel.');
+    const reparieren = gruppe('Reparieren', 'Schreibt in ClickUp. Vorher kurz überlegen.', 'schreibt');
+    const einmalig = klappe('Einmalige Reparaturen',
+      'Altlasten aus früheren Versionen. Schreibt ebenfalls in ClickUp.');
 
     const standAnzeigen = () => {
       const teile = [];
@@ -4721,7 +4885,7 @@
     // ganze Formular neu zu bauen.
     standAnzeigenGlobal = standAnzeigen;
 
-    knoepfe.append(
+    zugang.k.append(
       button('igfu-done', 'Speichern', async () => {
         GM_setValue(CU_LIST, listenFeld.value.trim());
         if (tokenFeld.value.trim()) GM_setValue(CU_TOKEN, tokenFeld.value.trim());
@@ -4737,6 +4901,17 @@
         standAnzeigen();
       }),
       button('igfu-link', 'Verbindung prüfen', async () => { await verbindungPruefen(); standAnzeigen(); }),
+      button('igfu-link', 'Token löschen', () => {
+        GM_setValue(CU_TOKEN, '');
+        GM_setValue(UP_TOKEN, '');
+        cuEinstellungenGeaendert();
+        standAnzeigen();
+        scanRows();
+        toast('Beide Token gelöscht. Das Postfach arbeitet wieder rein lokal.');
+      }),
+    );
+
+    holen.k.append(
       button('igfu-link', 'Lokale Follow-ups übernehmen', async () => { await uebernehmen(); standAnzeigen(); }),
       button('igfu-link', 'UpPromote abgleichen', async () => { await upAbgleichen(); standAnzeigen(); },
         'Bestätigte Affiliates aus UpPromote auf „' + CU_STATUS_ONBOARD + '" setzen'),
@@ -4759,6 +4934,17 @@
         'Fragt die Instagram-Unterhaltungen bei Meta ab. Die API nennt den Handle jedes '
         + 'Gegenübers — im Postfach steht er nirgends. Es wird nur gelesen, keine Unterhaltung '
         + 'geöffnet, nichts als gelesen markiert.'),
+      button('igfu-link', 'Tags mit ClickUp abgleichen',
+        async () => { await tagsAbgleichen(); standAnzeigen(); },
+        'Holt die Tag-Liste neu und nimmt die Tags dazu, die an Tasks hängen. '
+        + 'Danach stehen sie im Tag-Menü einer Unterhaltung zur Auswahl. '
+        + 'Es wird nur gelesen — kein Tag wird gesetzt oder entfernt.'),
+      button('igfu-link', 'Ganze Liste durchgehen', () => { closePanel(); allesAktualisieren(true); },
+        'Scrollt die komplette Unterhaltungsliste durch statt nur bis zum letzten Lauf. '
+        + 'Dauert deutlich länger. Nötig nach längerer Abwesenheit oder wenn etwas fehlt.'),
+    );
+
+    pruefen.k.append(
       button('igfu-link', 'Handles gegen UpPromote prüfen',
         async () => { await handlesPruefen(); standAnzeigen(); },
         'Vergleicht den Handle jedes Tasks mit dem, der bei UpPromote hinterlegt ist — '
@@ -4769,45 +4955,49 @@
         + 'die Unterhaltung von Person A am Task von Person B. Verglichen werden Benutzer-ID und '
         + 'Handle. Es wird nur gelesen: nichts umbenannt, nichts abgehängt, kein Tag '
         + 'gesetzt. Jeder Fund steht als Liste im Panel, entschieden wird von Hand.'),
+    );
+
+    reparieren.k.append(
       button('igfu-link', 'Namen richtigstellen',
         async () => { await namenReparieren(); standAnzeigen(); },
         'Schneidet den Vorschautext aus Task-Namen heraus („… PersonYou: Hi Beispiel,") und '
         + 'entfernt falsche Handles wie „https". Betroffene Tasks landen danach in der Liste '
         + '„Handles nachtragen".'),
-      button('igfu-link', 'Kennungen richtigstellen',
-        async () => { await kennungenReparieren(); standAnzeigen(); },
-        'Einmalig nötig: markiert jede Unterhaltungs-Kennung, zu der ein Instagram-Link in '
-        + 'der Beschreibung steht, auch als Instagram-Unterhaltung. Vorher wurde die Herkunft '
-        + 'an der Länge der Kennung geraten, und das war falsch.'),
-      button('igfu-link', 'Anschreib-Links nachtragen',
-        async () => { await anschreibLinksNachtragen(); standAnzeigen(); },
-        'Setzt bei jedem Task mit Handle einen Link, der den Instagram-Chat mit dieser Person '
-        + 'öffnet. Unabhängig davon, ob die Unterhaltung zugeordnet werden konnte. Wo schon ein '
-        + 'Link auf eine Unterhaltung steht, bleibt es dabei.'),
-      button('igfu-link', 'Alte Postfach-Links entfernen',
-        async () => { await altlinksEntfernen(); standAnzeigen(); },
-        'Nimmt den Link ins alte Postfach und die alte Markerzeile aus der Beschreibung — '
-        + 'aber nur dort, wo der Instagram-Link schon drinsteht. Der Instagram-Link rückt dabei '
-        + 'nach oben.'),
       button('igfu-link', 'Fehlende Fristen nachtragen',
         async () => { await fristenNachtragen(); standAnzeigen(); },
         'Setzt eine Nachfass-Frist bei jedem Task, der noch keine hat: ab „erste ware versendet" '
         + 'Versand plus 10 Wochentage, bei „ongeboardet" das Onboarding-Datum plus 14 Tage, '
         + 'darunter die letzte Nachricht plus 14 Tage. Tasks mit Frist bleiben unangetastet.'),
-      button('igfu-link', 'Ganze Liste durchgehen', () => { closePanel(); allesAktualisieren(true); },
-        'Scrollt die komplette Unterhaltungsliste durch statt nur bis zum letzten Lauf. '
-        + 'Dauert deutlich länger. Nötig nach längerer Abwesenheit oder wenn etwas fehlt.'),
-      button('igfu-link', 'Token löschen', () => {
-        GM_setValue(CU_TOKEN, '');
-        GM_setValue(UP_TOKEN, '');
-        cuEinstellungenGeaendert();
-        standAnzeigen();
-        scanRows();
-        toast('Beide Token gelöscht. Das Postfach arbeitet wieder rein lokal.');
-      }),
     );
 
-    f.append(hinweis, listenLabel, tokenLabel, upLabel, metaLabel, knoepfe);
+    // Die drei hier sind Altlasten-Reparaturen aus frueheren Versionen. Am
+    // 25.11.2026 im echten Bestand (362 Tasks) nachgezaehlt, rein lesend:
+    //   Kennungen richtigstellen      8 Tasks
+    //   Alte Postfach-Links entfernen 34 Tasks
+    //   Anschreib-Links nachtragen    0 Tasks
+    // Keine ist tot, deshalb bleibt keine weg — sie stehen nur zugeklappt.
+    einmalig.k.append(
+      button('igfu-link', 'Alte Postfach-Links entfernen',
+        async () => { await altlinksEntfernen(); standAnzeigen(); },
+        'Nimmt den Link ins alte Postfach und die alte Markerzeile aus der Beschreibung — '
+        + 'aber nur dort, wo der Instagram-Link schon drinsteht. Der Instagram-Link rückt dabei '
+        + 'nach oben. Am 25.11.2026 betraf das noch 34 Tasks.'),
+      button('igfu-link', 'Kennungen richtigstellen',
+        async () => { await kennungenReparieren(); standAnzeigen(); },
+        'Markiert jede Unterhaltungs-Kennung, zu der ein Instagram-Link in '
+        + 'der Beschreibung steht, auch als Instagram-Unterhaltung. Vorher wurde die Herkunft '
+        + 'an der Länge der Kennung geraten, und das war falsch. '
+        + 'Am 25.11.2026 betraf das noch 8 Tasks.'),
+      button('igfu-link', 'Anschreib-Links nachtragen',
+        async () => { await anschreibLinksNachtragen(); standAnzeigen(); },
+        'Setzt bei jedem Task mit Handle einen Link, der den Instagram-Chat mit dieser Person '
+        + 'öffnet. Unabhängig davon, ob die Unterhaltung zugeordnet werden konnte. Wo schon ein '
+        + 'Link auf eine Unterhaltung steht, bleibt es dabei. '
+        + 'Am 25.11.2026 war kein Task mehr offen.'),
+    );
+
+    f.append(hinweis, listenLabel, tokenLabel, upLabel, metaLabel,
+      zugang.g, holen.g, pruefen.g, reparieren.g, einmalig.g);
     f.standAnzeigen = standAnzeigen;
     standAnzeigen();
     return f;

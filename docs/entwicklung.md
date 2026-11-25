@@ -1168,6 +1168,51 @@ Für „abgeschlossen" gibt es außerdem die vier Endstatus `abgesagt`, `ignore`
 „Regel 2"). Der **Status** `ignore` wirkt also, das gleichnamige **Tag** nicht —
 eine Verwechslung, die hier schon zweimal Zeit gekostet hat.
 
+### Woher die Tag-Liste kommt (9.9)
+
+Das Tag-Menü einer Unterhaltung wird aus `clickup:tagliste:v1` gebaut, einem
+Puffer im GM-Speicher mit Zeitstempel `clickup:tagliste:stand:v1` und einer
+Frist von einer halben Stunde (`TAGLISTE_FRISCH`). Gefüllt wird er von
+`tagsLaden()`.
+
+**Bis 9.8 war `GET /space/<id>/tag` die einzige Quelle.** Das hat zwei Löcher,
+die beide erst 9.9 schließt:
+
+1. **Ein Tag kann am Task hängen, ohne im Space gemeldet zu sein.** ClickUp
+   trägt einen Tag nicht in den Zielraum nach, wenn ein Task aus einem anderen
+   Space hereingeschoben wird — er klebt dann am Task und steht in keiner
+   Space-Liste. `tagMenue()` baut sein Menü aber ausschließlich aus der
+   Space-Liste, nie aus `task.tags`. So ein Tag war an genau dem Task sichtbar
+   (als Pille) und überall sonst nicht auswählbar. Seit 9.9 vereinigt
+   `tagsLaden()` beide Quellen; die aus Tasks ergänzten tragen
+   `nurAmTask: true` und keine Farbe.
+2. **Jeder Fehler wurde verschluckt.** Der einzige Aufruf stand (und steht) in
+   `kopfLeisteSetzen()` an einem `.catch(() => {})`. Ein abgelaufener Token
+   oder ein Limit blieben vollständig stumm, und weil `tagsLaden()` den Stand
+   nur bei **nicht leerer** Antwort fortschreibt, sah die alte Liste danach aus
+   wie eine frische. Nichts im Panel konnte eine gepflegte von einer
+   eingefrorenen Liste unterscheiden.
+
+Dazu kommt, dass der einzige Auslöser eine **Nebenwirkung** war: die Liste wurde
+nur nachgeholt, wenn gerade eine Unterhaltung offen war, **die schon einen Task
+hat** (`if (task && …)` in `kopfLeisteSetzen()`). Wer in ClickUp einen Tag
+anlegt und ihn an einem noch nicht erfassten Kontakt benutzen will, hatte keinen
+Weg, das Nachholen anzustoßen — dort erscheint nicht einmal das Tag-Menü.
+
+`tagsAbgleichen()` ist deshalb kein bloßer Komfortknopf: er ist der **einzige**
+Weg, den Abruf absichtlich auszulösen und sein Ergebnis zu sehen. Er frischt
+vorher `cuTasksLaden()`, weil sonst der alte Spiegel genau die neuen Task-Tags
+verschweigen würde, und meldet Fehler als `Tags: …` statt sie zu schlucken.
+
+> **Messung vom 25.11.2026**, rein lesend gegen Liste `9000000000007224` und
+> Space `90000000845`: der Space meldet **57** Tags, an den 362 Tasks hängen
+> **25** verschiedene — und alle 25 sind in den 57 enthalten. Loch 1 war zu dem
+> Zeitpunkt also **nicht** aufgerissen; die Vereinigung ist trotzdem richtig,
+> weil die Space-Liste den Fall prinzipiell nicht abdeckt und niemand merkt,
+> wenn er eintritt. 32 der 57 gehören zu anderen Listen desselben Space
+> (`tofu`, `mifu`, `warte schnitt`, `skripten` …): die Liste ist eher zu lang
+> als zu kurz, was gegen die Vermutung spricht, der Abruf liefere zu wenig.
+
 ### Der Tag `karteileiche`
 
 Manche Datensätze müssen bleiben, obwohl sie niemand mehr bearbeiten will: ein
@@ -1900,6 +1945,121 @@ in Chrome, was **Chromes** Darstellungsmodus sagt, und der gilt pro Profil.
 Instagram hatte dort keine eigene gespeicherte Einstellung (localStorage und
 Cookies leer), folgte also dem Browser. Bei der Suche nach „warum sieht das
 hier anders aus" zuerst `matchMedia` abfragen, nicht das Betriebssystem.
+
+## 9c. Das Einstellungs-Formular (9.9)
+
+Der Knopf im Panelkopf heißt seit 9.9 **„Einstellungen"**, vorher „ClickUp".
+Das war schlicht falsch: hinter dem Formular stehen auch UpPromote, die
+Meta-API und reine Anzeigefunktionen wie „Inhalte-Seite öffnen".
+
+### Die Gliederung
+
+Bis 9.8 hingen alle sechzehn Knöpfe in einer flachen `.igfu-form-knoepfe`-Reihe.
+Seit 9.9 sind es fünf Abschnitte, geordnet nach **Wirkung**, nicht nach
+Fremdsystem:
+
+| Abschnitt | Kriterium |
+|---|---|
+| Zugang | Liste und Token, speichern und prüfen |
+| Holen und abgleichen | zieht Daten nach (UpPromote, Meta, ClickUp, Tags) |
+| Prüfen | **ändert nichts**, stellt nur Fundlisten ins Panel |
+| Reparieren | **schreibt in ClickUp** — abgesetzt über `[data-art="schreibt"]` |
+| Einmalige Reparaturen | Altlasten, in einem zugeklappten `<details>` |
+
+Die Trennung „liest nur" gegen „schreibt" ist die wichtigste, die sich hier
+sichtbar machen lässt — an den schreibenden Knöpfen ist zweimal Schaden
+entstanden (Task-Namen aus dem Seitentext, Fristen vor dem Startdatum).
+
+Die Knopfbeschriftungen sind **unverändert geblieben**. Die Tests greifen
+Knöpfe über `knopf(doc, text)` am genauen Text ab; ein Umbenennen hätte rund
+zwanzig Prüfungen angefasst, ohne irgendetwas zu verbessern.
+
+### Wie viel Arbeit die Altlasten noch finden
+
+Am 25.11.2026 rein lesend gegen den echten Bestand (362 Tasks) gezählt, damit
+die Frage „brauchen wir die alle?" nicht nach Gefühl beantwortet wird:
+
+| Knopf | Betroffen | Gemessen an |
+|---|---|---|
+| Alte Postfach-Links entfernen | 34 | Beschreibungen mit `igfu-ig:` **und** `igfu-thread:` |
+| Kennungen richtigstellen | 8 | `igfu-thread:`-Zeile, deren Kennung als `instagram.com/direct/t/<kennung>` danebensteht |
+| Anschreib-Links nachtragen | 0 | Handle vorhanden, kein Direct- und kein `ig.me`-Link |
+
+Keine ist tot, deshalb ist keine entfernt worden. Zwei Nebenbefunde aus
+derselben Messung:
+
+- Von 69 Tasks mit `igfu-thread:` passen nur 8 auf die Kennungs-Reparatur. Bei
+  den übrigen ist der `igfu-thread:`-Wert eine Postfach-ID, während der
+  Direct-Link die IG-Thread-ID trägt — **zwei verschiedene Kennungsräume**,
+  die Bedingung kann dort gar nicht greifen.
+- Der Zweig in `altlinkAufraeumen()`, der Zeilen ab `Link zu Nachrichten:`
+  entfernt, findet in **keiner** der 362 Beschreibungen mehr etwas.
+
+### Die Partner-Adressform in `anschreibLinksNachtragen()`
+
+Nach der alten Regel fand der Knopf zwei Tasks (nelly.schulte.1111,
+theveganvillage) — beide hatten aber längst einen funktionierenden Link, nur in
+der Form `instagram.com/direct/partnerships/t/<kennung>`. Die enthält
+`…/direct/t/…` mechanisch nicht, also galten sie als unversorgt, und der Knopf
+hätte ihnen einen `ig.me`-Link daneben geschrieben. Die Prüfung akzeptiert seit
+9.9 beide Formen. Erweitert wurde bewusst **nur diese Schranke**, die das
+Schreiben verhindert — `kennungenRichtigstellen()` bleibt unangetastet, weil
+eine Lockerung dort mehr geschrieben würde statt weniger.
+
+### Warum das Formular unten abgeschnitten war
+
+Am 25.11.2026 an der lebenden Seite nachgemessen (Fensterhöhe 828 px):
+
+```
+#igfu-panel   max-height min(72vh, 640px) → 596 px,  display:flex/column,
+              overflow: visible
+.igfu-form    Höhe 706 px,  overflow-y: visible,  min-height: auto
+.igfu-body    overflow-y: auto
+→ Unterkante des Formulars 104 px unterhalb des Fensterrands
+```
+
+Zwei Ursachen greifen ineinander:
+
+- **`min-height: auto`.** Ein Flex-Element bekommt als automatische
+  Mindestgröße seine Inhaltshöhe, solange sein `overflow` auf `visible` steht.
+  `flex-shrink: 1` läuft damit ins Leere: das 706 px hohe Formular **konnte
+  nicht** auf die verfügbaren 547 px schrumpfen.
+- **`overflow: visible` am Panel.** Was nicht hineinpasst, wurde nicht
+  geklippt, sondern hing unten heraus — über den Fensterrand hinaus. Gescrollt
+  wird nur `.igfu-body`, und das Formular liegt daneben, nicht darin. Die
+  letzten vier Knöpfe („Fehlende Fristen nachtragen", „Ganze Liste durchgehen",
+  „Token löschen") waren schlicht nicht erreichbar.
+
+Der Fix ist `overflow: hidden` am Panel und `overflow-y: auto; min-height: 0`
+an **beiden** Kindern. Danach scrollt jedes Kind in sich, und nichts verlässt
+den Kasten.
+
+**Das allein reicht aber nicht**, und das ist die Falle an der Stelle: Flexbox
+verteilt das Schrumpfen im Verhältnis der **Ausgangsgrößen**. Die Liste ist mit
+rund 21 000 px dreißigmal höher als das Formular mit 706 px, also schrumpfen
+beide auf denselben Bruchteil — das Formular landete so bei **48 px**, einem
+unbrauchbaren Schlitz, und war damit kaum besser dran als vorher. Deshalb
+bekommt `.igfu-body` zusätzlich `flex-shrink: 100`: erst weicht die Liste ganz,
+dann erst gibt das Formular nach. Ist das Formular zu, hat die Liste den Panel
+wieder für sich, und der Faktor spielt keine Rolle.
+
+Am 25.11.2026 an der lebenden Seite gegengemessen, mit eingespielten Regeln:
+
+| Zustand | Formular | Liste | „Token löschen" erreichbar |
+|---|---|---|---|
+| vorher, Formular offen | 706 px, 104 px außerhalb des Fensters | 0 px | **nein** |
+| nachher, Formular offen | 547 px, scrollt | 0 px | ja |
+| nachher, Formular zu | — | 547 px, scrollt | — |
+| nachher, Panel auf 200 px gedeckelt | 151 px, scrollt | 0 px | ja |
+
+Die letzte Zeile ist die Probe auf kleine Fenster: auch bei einem 200 px hohen
+Panel bleibt der unterste Knopf durch Scrollen im Formular erreichbar.
+
+> jsdom rechnet kein Layout, eine echte Abschneide-Prüfung ist dort unmöglich.
+> Die Gruppe „Formular und Liste scrollen in sich" prüft deshalb die drei
+> Regeln im ausgelieferten CSS-Text. Das ist schwächer als eine Messung, hält
+> aber fest, dass niemand sie wieder herausnimmt — und die Messung oben steht
+> hier.
 
 ## 10. Tests
 

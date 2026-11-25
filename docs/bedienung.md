@@ -632,18 +632,81 @@ tragen. Im zweiten Fall wäre jede Zuordnung geraten.
 
 ## Das Panel
 
+Oben rechts im Panel steht **„Einstellungen"**. Der Knopf hieß bis 9.8
+„ClickUp" — das war irreführend, denn dahinter stehen auch UpPromote, die
+Meta-API und reine Anzeigefunktionen.
+
+Seit 9.9 ist das Formular in **fünf Abschnitte** geteilt, und zwar danach, was
+ein Knopf anrichtet — nicht danach, welches Fremdsystem er anspricht. Vorher
+hingen alle sechzehn in einer Reihe nebeneinander.
+
+### Zugang
+
+Liste und Token. Hier wird nur gespeichert und geprüft.
+
 | Knopf | Was er tut |
 |---|---|
 | Speichern | Token und Listen-ID übernehmen |
-| UpPromote abgleichen | Nur den UpPromote-Teil, ohne Listendurchlauf |
-| Inhalte-Seite öffnen | Metas Inhalte, datumssortiert, richtiges Konto |
-| Affiliates importieren | Legt aktive Affiliates aus UpPromote als Tasks an, aus dem Affiliate- **und** dem Ambassador-Programm. **Erster Klick zählt nur**, zweiter legt an. |
-| Falsch verbundene Unterhaltungen finden | Sucht Tasks, an denen die Unterhaltung einer anderen Person hängt. Liest nur, ändert nichts — siehe oben. |
-| Ganze Liste durchgehen | Kompletter Durchlauf statt nur bis zum letzten Lauf |
+| Verbindung prüfen | Holt den Stand aus ClickUp und meldet, was ankommt |
 | Token löschen | Trennt die ClickUp-Verbindung. Follow-ups bleiben lokal erhalten. |
+
+### Holen und abgleichen
+
+Daten aus UpPromote, Meta und ClickUp nachziehen.
+
+| Knopf | Was er tut |
+|---|---|
+| Lokale Follow-ups übernehmen | Was lokal markiert ist und in ClickUp fehlt, wird dort angelegt |
+| UpPromote abgleichen | Nur den UpPromote-Teil, ohne Listendurchlauf |
+| Affiliates importieren | Legt aktive Affiliates aus UpPromote als Tasks an, aus dem Affiliate- **und** dem Ambassador-Programm. **Erster Klick zählt nur**, zweiter legt an. |
+| Inhalte-Seite öffnen | Metas Inhalte, datumssortiert, richtiges Konto |
+| Handles über die Meta-API holen | Fragt die Handles bei Meta ab. Liest nur. |
+| Tags mit ClickUp abgleichen | Holt die Tag-Liste neu — siehe unten |
+| Ganze Liste durchgehen | Kompletter Durchlauf statt nur bis zum letzten Lauf |
 
 „Ganze Liste durchgehen" brauchst du nach längerer Abwesenheit oder wenn etwas
 fehlt. Im Alltag reicht der normale Knopf.
+
+### Prüfen
+
+**Diese beiden ändern nichts.** Sie stellen nur Fundlisten ins Panel,
+entschieden wird von Hand.
+
+| Knopf | Was er tut |
+|---|---|
+| Handles gegen UpPromote prüfen | Vergleicht den Handle jedes Tasks mit UpPromote |
+| Falsch verbundene Unterhaltungen finden | Sucht Tasks, an denen die Unterhaltung einer anderen Person hängt — siehe oben |
+
+### Reparieren
+
+**Diese schreiben in ClickUp.** Der Abschnitt ist farbig abgesetzt, damit das
+vor dem Klicken sichtbar ist und nicht erst im Hilfetext steht.
+
+| Knopf | Was er tut |
+|---|---|
+| Namen richtigstellen | Schneidet Vorschautext und falsche Handles aus Task-Namen |
+| Fehlende Fristen nachtragen | Setzt eine Nachfass-Frist, wo keine steht |
+
+### Einmalige Reparaturen (zugeklappt)
+
+Altlasten aus früheren Versionen. Sie schreiben ebenfalls in ClickUp, werden
+aber fast nie gebraucht — deshalb stehen sie hinter einer Klappe.
+
+Am **25.11.2026** wurde rein lesend nachgezählt, wie viel Arbeit jede im echten
+Bestand (362 Tasks) überhaupt noch findet:
+
+| Knopf | Noch betroffen |
+|---|---|
+| Alte Postfach-Links entfernen | **34 Tasks** |
+| Kennungen richtigstellen | **8 Tasks** |
+| Anschreib-Links nachtragen | **0 Tasks** |
+
+Keine ist also tot — deshalb ist keine entfernt worden. „Anschreib-Links
+nachtragen" fand vorher scheinbar zwei Tasks, aber das war ein Fehler des
+Knopfes: beide Unterhaltungen liegen im **Partner-Ordner**, und deren Adresse
+lautet `…/direct/partnerships/t/…`. Der Knopf hat nur nach `…/direct/t/…`
+gesucht und die zwei deshalb für unversorgt gehalten. Seit 9.9 erkennt er die
+Partner-Form, und damit ist der Knopf im Bestand leer.
 
 **Unten im Panel steht eine Standzeile.** Sie sagt, was verbunden ist, wie viele
 Änderungen noch auf Übertragung warten — und wie viele **aktive Affiliates noch
@@ -826,6 +889,33 @@ nicht warten willst: Seite neu laden.
 > Bis 9.1 wurde die Liste nur geholt, **solange sie leer war**. Ein Tag, den du
 > später in ClickUp angelegt hast, erschien im Menü deshalb nie. Am 10.11.2026
 > an `low potential` aufgefallen.
+
+#### Wenn ein Tag trotzdem fehlt: „Tags mit ClickUp abgleichen"
+
+Unter **Einstellungen → Holen und abgleichen** liegt seit 9.9 der Knopf **„Tags
+mit ClickUp abgleichen"**. Er holt die Liste sofort neu und sagt dir danach,
+wie viele Tags zur Auswahl stehen und welche neu dazugekommen sind. Er setzt
+und entfernt dabei **keinen** Tag — er liest nur.
+
+Zwei Dinge macht er besser als das Nachholen im Hintergrund:
+
+- **Er nimmt die Tags mit, die an Tasks hängen.** Vorher war die Tag-Liste des
+  Space die einzige Quelle. Das genügt nur so lange, wie jeder Tag an einem
+  Task auch im Space gemeldet ist — und darauf ist kein Verlass: schiebst du
+  einen Task aus einem anderen Space herüber, kommen seine Tags mit, ohne im
+  Zielraum einzutragen. So ein Tag klebt dann sichtbar am Task und war im Menü
+  trotzdem nicht auswählbar. Seit 9.9 steht er drin, nur ohne Farbe.
+- **Er sagt dir, wenn etwas schiefgeht.** Das Nachholen im Hintergrund
+  verschluckt jeden Fehler: bei abgelaufenem Token oder einem Limit blieb die
+  alte Liste einfach stehen und sah aus wie eine frische. Der Knopf meldet
+  stattdessen „Tags: …".
+
+> Am 25.11.2026 nachgemessen: ClickUp meldet im Space **57** Tags, an Tasks
+> hängen **25** — und alle 25 waren in den 57 enthalten. Zu dem Zeitpunkt
+> fehlte also keiner; drückst du den Knopf, steht dort „keiner neu". Das ist
+> die richtige Antwort und kein Fehler. Von den 57 gehören übrigens 32 zu
+> ganz anderen Listen im Marketing-Space (`tofu`, `warte schnitt`, `skripten`
+> …) — die Liste ist eher zu lang als zu kurz.
 
 > **Zum Status von Hand.** Die Pipeline ist für das Skript eine Leiter: die
 > Automatik schiebt nur nach vorn. Für dich gilt das **nicht** — du kannst
