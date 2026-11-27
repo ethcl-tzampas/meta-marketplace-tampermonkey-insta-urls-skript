@@ -1,0 +1,70 @@
+# Datenpruefung bei jedem Push und Pull Request.
+#
+# Prueft den Stand, jede hinzugefuegte Zeile der gesamten erreichbaren
+# Historie und alle Commit-Nachrichten mit tools/datenpruefung.mjs. Faengt
+# ab, was an den lokalen Hooks vorbeikommt (GitHub-Weboberflaeche, Klon
+# ohne aktivierte Hooks, --no-verify).
+#
+# Die Sperrliste echter Werte kommt aus dem Repository-Secret
+# DATEN_SPERRLISTE (eine Zeile je Wert). Sie wird nur in eine temporaere
+# Datei geschrieben und nie ausgegeben; Funde erscheinen im Log maskiert.
+# Fehlt das Secret (z. B. Pull Request aus einem Fork), schlaegt der Lauf
+# fehl — fail closed.
+
+name: Datenpruefung
+
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sperrliste bereitstellen
+        env:
+          SPERRLISTE: ${{ secrets.DATEN_SPERRLISTE }}
+        run: |
+          if [ -z "$SPERRLISTE" ]; then
+            echo "::error::Secret DATEN_SPERRLISTE fehlt oder ist leer — Pruefung schlaegt geschlossen fehl."
+            exit 1
+          fi
+          umask 077
+          printf '%s\n' "$SPERRLISTE" > "$RUNNER_TEMP/sperrliste.txt"
+          echo "Sperrliste: $(grep -cv '^[[:space:]]*$' "$RUNNER_TEMP/sperrliste.txt") Werte"
+
+      - name: Stand pruefen
+        env:
+          DATEN_SPERRLISTE_DATEI: ${{ runner.temp }}/sperrliste.txt
+        run: node tools/datenpruefung.mjs --baum HEAD
+
+      - name: Historie und Commit-Nachrichten pruefen
+        env:
+          DATEN_SPERRLISTE_DATEI: ${{ runner.temp }}/sperrliste.txt
+          KOPF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node tools/datenpruefung.mjs --bereich "$KOPF"
+
+      - name: Userscripts parsen
+        run: |
+          for f in *.user.js; do
+            node --check "$f"
+            test "$(tail -n 1 "$f" | tr -d '\r')" = "})();" || { echo "::error::$f endet nicht auf })();"; exit 1; }
+          done
+
+      - name: Sperrliste entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sperrliste.txt"

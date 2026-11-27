@@ -1,0 +1,32 @@
+#!/bin/sh
+# Commit-Waechter (aktivieren: git config core.hooksPath .githooks)
+#
+# 1. node --check auf dem GESTAGTEN Inhalt jeder *.user.js — ein Skript, das
+#    sich nicht parsen laesst, laeuft in Tampermonkey gar nicht (05.10.2026).
+# 2. Datenpruefung auf dem GESTAGTEN Inhalt aller Dateien: keine
+#    personenbezogenen oder internen Daten im oeffentlichen Repo.
+#
+# Beides schlaegt geschlossen fehl: fehlt node, wird nicht committet.
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node fehlt — ohne Pruefung wird nicht committet." >&2
+  exit 1
+fi
+
+tmp=$(mktemp -d) || exit 1
+trap 'rm -rf "$tmp"' EXIT
+
+git diff --cached --name-only --diff-filter=ACMR -z -- '*.user.js' | tr '\0' '\n' | while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  git show ":$f" > "$tmp/pruef.js" || exit 1
+  if ! node --check "$tmp/pruef.js"; then
+    echo "pre-commit: $f laesst sich im gestagten Stand nicht parsen — Commit abgebrochen." >&2
+    exit 1
+  fi
+  if [ "$(tail -c 6 "$tmp/pruef.js" | tr -d '\n\r')" != "})();" ]; then
+    echo "pre-commit: $f endet im gestagten Stand nicht auf '})();' — abgeschnitten?" >&2
+    exit 1
+  fi
+done || exit 1
+
+node "$(git rev-parse --show-toplevel)/tools/datenpruefung.mjs" --gestaged || exit 1

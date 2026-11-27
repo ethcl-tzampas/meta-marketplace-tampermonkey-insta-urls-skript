@@ -52,8 +52,18 @@ keine echten Zugangsdaten.
 
 ---
 
-## Hinweis
+## Hinweis: öffentlich, also ohne echte Daten
 
-Dieses Repository ist öffentlich. Zugangsdaten liegen ausschließlich im
-Tampermonkey-Speicher des jeweiligen Browsers und gehören niemals in den Code.
-Alle IDs, Namen und Adressen in Beispielen und Tests sind erfunden.
+Dieses Repository ist absichtlich öffentlich — Tampermonkey holt die Updates
+ohne Anmeldung. Deshalb gehören **keine** personenbezogenen Daten (Handles,
+Namen, E-Mail-Adressen, Instagram-IDs) und **keine** internen Kennungen
+(ClickUp, Meta) hierher, weder in Code, Tests, Doku noch in
+Commit-Nachrichten. Zugangsdaten liegen ausschließlich im Tampermonkey-Speicher
+des jeweiligen Browsers. Alle IDs, Namen und Adressen in Beispielen und Tests
+sind erfunden, nach der Platzhalter-Konvention in der
+[Entwicklerdoku, Abschnitt 11](docs/entwicklung.md#11-regeln-für-zugangsdaten-und-daten).
+
+Vor dem ersten Commit auf einem neuen Klon: `git config core.hooksPath .githooks`
+— die Hooks und eine GitHub-Action prüfen jeden Commit und Push
+(`tools/datenpruefung.mjs`). Regeln für Mitarbeitende und KI-Assistenten:
+[`CLAUDE.md`](CLAUDE.md).

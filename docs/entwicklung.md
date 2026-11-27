@@ -1505,6 +1505,19 @@ Beide tragen `@updateURL` und `@downloadURL`, aktualisieren sich also selbst.
 > **Nie löschen und neu installieren.** Der GM-Speicher hängt an Name und
 > Namespace; beim Löschen gehen Token und Markierungen mit.
 
+### Klon zum Entwickeln
+
+Einmal pro Klon, bevor der erste Commit entsteht:
+
+```bash
+git config core.hooksPath .githooks     # Commit-Wächter, Abschnitt 10
+npm install jsdom                       # für die Tests, Abschnitt 10
+```
+
+Daneben — **nicht** im Repo — die Sperrliste echter Werte als
+`../repo-sperrliste.txt` ablegen (Abschnitt 11). Ohne sie brechen die Hooks
+ab.
+
 ### Meta Conversations API
 
 1. Eine App unter dem Business anlegen (oder eine vorhandene nehmen).
@@ -2145,30 +2158,46 @@ Prüfungen liefen anfangs leer durch und hätten nichts gemerkt.
 
 ### Der Commit-Wächter
 
-`.git/hooks/pre-commit` führt `node --check` auf dem **gestagten** Inhalt jeder
-`*.user.js` aus und bricht den Commit ab, wenn die Datei sich nicht parsen lässt.
+Die Hooks liegen versioniert in `.githooks/` und werden **einmal pro Klon**
+eingeschaltet:
 
-Der Hook liegt in `.git/hooks/` und wird von Git **nicht** mitgeklont. Auf einem
-frischen Klon muss er neu angelegt werden.
+```bash
+git config core.hooksPath .githooks
+```
 
-**Warum er existiert:** Am 05.10.2026 landete Version 4.3 abgeschnitten auf
-GitHub — die letzten 40 Zeilen fehlten, mitten in einem `setTimeout`. Die Datei
-im Arbeitsverzeichnis war vollständig und alle 211 Tests liefen grün, denn die
-Tests lesen das Arbeitsverzeichnis, nicht den Commit. Tampermonkey lud über
-`@downloadURL` den kaputten Stand, und damit war das ganze Skript tot: keine
-Pillen, keine Knöpfe, kein Panel. Ein Skript, das sich nicht parsen lässt, läuft
-nicht teilweise, sondern gar nicht.
+Git klont Hooks nicht automatisch mit — ohne diese Zeile läuft keiner davon.
+Prüfen: `git config core.hooksPath` muss `.githooks` ausgeben. Die Hooks
+brauchen `node` im `PATH`; fehlt es, brechen sie ab, statt ungeprüft
+durchzulassen.
+
+| Hook | Was er prüft |
+|---|---|
+| `pre-commit` | `node --check` auf dem **gestagten** Inhalt jeder `*.user.js`, letzte Zeile `})();`, dann die Datenprüfung des gestagten Inhalts **aller** Dateien (auch `.md`) |
+| `commit-msg` | Datenprüfung der Commit-Nachricht |
+| `pre-push` | Datenprüfung jeder hinzugefügten Zeile und jeder Nachricht aller Commits, die der Push mitnimmt — fängt auch Commits ab, die mit `--no-verify` entstanden sind |
+
+**Warum der Syntax-Check existiert:** Am 05.10.2026 landete Version 4.3
+abgeschnitten auf GitHub — die letzten 40 Zeilen fehlten, mitten in einem
+`setTimeout`. Die Datei im Arbeitsverzeichnis war vollständig und alle 211
+Tests liefen grün, denn die Tests lesen das Arbeitsverzeichnis, nicht den
+Commit. Tampermonkey lud über `@downloadURL` den kaputten Stand, und damit war
+das ganze Skript tot: keine Pillen, keine Knöpfe, kein Panel. Ein Skript, das
+sich nicht parsen lässt, läuft nicht teilweise, sondern gar nicht.
+
+**Warum die Datenprüfung existiert:** siehe Abschnitt 11. Im November 2026
+standen echte Handles, Instagram- und ClickUp-Kennungen in Tests, Kommentaren
+und Commit-Nachrichten; die ganze Historie musste umgeschrieben werden.
 
 **Merksatz:** Nach jedem Push die Rohdatei gegenprüfen, nicht nur die lokale:
 
 ```bash
-curl -sS https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-markierungen.user.js \
+curl -sS "https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-markierungen.user.js?frisch=$(date +%s)" \
   | tee /tmp/pruef.js | tail -1 && node --check /tmp/pruef.js && echo "GitHub-Stand ist in Ordnung"
 ```
 
 ---
 
-## 11. Regeln für Zugangsdaten
+## 11. Regeln für Zugangsdaten und Daten
 
 - Token liegen **ausschließlich** im GM-Speicher und werden bei jeder Anfrage
   frisch von dort gelesen.
@@ -2176,6 +2205,100 @@ curl -sS https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonk
   oder einem Log.
 - Alle Anfragen über `GM_xmlhttpRequest` mit passendem `@connect`, nie über
   `fetch` — sonst greift Metas CSP, und der Token stünde im Seitenkontext.
-- **Dieses Repo ist öffentlich.** Keine echten IDs, keine Namen, keine
-  E-Mail-Adressen, keine Thread- oder Task-IDs in Code, Tests oder
-  Commit-Nachrichten. Platzhalter in Beispielen sind frei erfunden.
+
+### Keine echten Daten im Repo
+
+**Dieses Repo ist öffentlich, und das muss es bleiben** — Tampermonkey holt
+die Updates ohne Anmeldung über `raw.githubusercontent.com`. Öffentlich heißt:
+alles, was je committet wurde, ist für jeden lesbar, auch in der Historie.
+Deshalb steht hier **nie**, weder in Code, Kommentaren, Tests, Doku noch in
+Commit-Nachrichten, Branch- oder Tag-Namen:
+
+- **personenbezogene Daten** — Instagram-Handles, Namen und Anzeigenamen,
+  E-Mail-Adressen, Instagram-Thread-, Benutzer- und Bild-IDs;
+- **interne Kennungen** — ClickUp-Workspace-, Space-, Listen- und Task-IDs,
+  Meta-Werbekonto-, Business- und Seiten-IDs;
+- **Token, Schlüssel und sonstige Geheimnisse**.
+
+**Echte Vorfälle werden in Worten beschrieben**, nie mit dem echten Wert:
+„ein Handle mit Unterstrichen vorne und hinten verlor sie beim Rendern",
+nicht der Handle selbst. Wo ein Beispiel nötig ist, steht ein erfundener
+Wert nach der Konvention unten.
+
+Festgehalten auch in [`CLAUDE.md`](../CLAUDE.md) im Wurzelverzeichnis.
+
+### Platzhalter-Konvention
+
+| Art | Form | Beispiele |
+|---|---|---|
+| Lange Zahlen (ab 9 Stellen): Thread-, Benutzer-, Bild-, Seiten-, Listen-IDs | eine `9`, dann mindestens sechs Nullen, dann beliebige Ziffern — **oder** höchstens drei verschiedene Ziffern | `900000000001`, `90000000000007278`, `111000111`, `2222222222222222` |
+| Alte 39-stellige Postfach-Kennungen | dieselbe Form, 39 Stellen | `900000000000000000000000840012452280991` |
+| ClickUp-Task-IDs | kurze, offensichtlich erfundene Kennungen, nie mit Ziffer vorne und Buchstaben dahinter | `a1`, `t_111`, in Prosa „Task A" |
+| E-Mail-Adressen | nur reservierte Domains: `example.com`, `example.org`, `example.net`, `*.example`, `*.test`, `*.invalid` | `a@b.test`, `n1@b.test`, `jemand@example.com` |
+| Handles, Namen | frei erfunden, nie von einer echten Person abgeleitet | `marakell.runs` — Mara Kell, `zzz.niemand` |
+| Token | erkennbar unecht und kurz | `pk_geheim_123`, `up_geheim` |
+
+Zeitstempel in Millisekunden schreibt man als Ausdruck
+(`1700000000000 + 86400000`), Zeitkonstanten ebenso (`7 * 86400000`) — dann
+fallen sie nicht unter die Zahlenregel. Erlaubt sind außerdem die
+`z-index`-Werte knapp unter 2³¹ (`2147483000`–`2147483647`).
+
+### Die Datenprüfung
+
+`tools/datenpruefung.mjs` hält das durch; die Hooks (Abschnitt 10) und die
+GitHub-Action `.github/workflows/datenpruefung.yml` rufen sie auf.
+
+1. **Muster:** E-Mail-Adressen außerhalb der reservierten Domains, lange
+   Zahlen außerhalb der Platzhalterform, ClickUp-artige IDs (Ziffern, dann
+   Buchstaben jenseits von `f`), Token-Formen (`pk_`/`sk_` mit langem Rest,
+   `shpat_`, `ghp_`/`gho_`/`github_pat_`, `EAA…`, `xox…-`, AWS-Schlüssel,
+   private Schlüssel, `Bearer …`).
+2. **Sperrliste:** bekannte echte Werte, eine Zeile je Wert, Groß- und
+   Kleinschreibung egal, auch hinter Markdown-Escapes und Schmuckschrift
+   (NFKC). Sie liegt **außerhalb** des Repos und wird **nie** committet:
+   `../repo-sperrliste.txt` neben dem Klon, oder ein Pfad in
+   `DATEN_SPERRLISTE_DATEI`. Liegt sie im Repo, bricht die Prüfung ab.
+3. **Fail closed:** Fehlt die Sperrliste, bricht die Prüfung ab (Exit 2).
+   Nur wenn es auf einem Rechner wirklich keine gibt, schaltet
+   `DATENPRUEFUNG_OHNE_SPERRLISTE=1` auf reine Musterprüfung. Jeder Git- oder
+   Lesefehler ist ebenfalls ein Abbruch, kein Durchwinken.
+
+Aufrufe von Hand:
+
+```bash
+node tools/datenpruefung.mjs --baum HEAD        # aktueller Stand
+node tools/datenpruefung.mjs --bereich HEAD     # ganze Historie samt Nachrichten
+node tools/datenpruefung.mjs --dateien README.md
+```
+
+In der GitHub-Action kommt die Sperrliste aus dem Repository-Secret
+`DATEN_SPERRLISTE` (eine Zeile je Wert). Sie wird nur in eine temporäre Datei
+geschrieben; Funde erscheinen im Log **maskiert**, denn die Logs eines
+öffentlichen Repos sind öffentlich. Neue echte Werte kommen in beide Listen —
+lokal in die Datei, auf GitHub mit
+`gh secret set DATEN_SPERRLISTE < ../repo-sperrliste.txt`.
+
+Zusätzlich sind auf GitHub **Secret Scanning** und **Push Protection**
+eingeschaltet.
+
+**Was keine Prüfung abdeckt:** Texte von Issues, Pull Requests und
+Kommentaren auf GitHub, Release-Notizen, Wiki. Dort gilt die Regel genauso,
+nur prüft sie niemand automatisch. Handles und Namen, die (noch) nicht auf
+der Sperrliste stehen, erkennt kein Muster — die Regel bleibt Handarbeit.
+
+### Die Historie wurde umgeschrieben (November 2026)
+
+Echte Werte standen auch in alten Commits. Die gesamte Historie aller
+Branches und Tags wurde deshalb mit `git filter-repo --replace-text` und
+`--replace-message` umgeschrieben; echte Werte sind durch die Platzhalter
+oben ersetzt. Dabei haben sich **alle Commit-SHAs geändert**. Ein älterer
+Klon passt nicht mehr: neu klonen, Hooks einschalten, Sperrliste daneben
+legen. Begleitendes Issue: #1.
+
+Das Postfach-Skript **9.10** enthält nur diese Bereinigung: Kommentare
+nennen erfundene statt echter Werte, der Hilfetext von „Falsch verbundene
+Unterhaltungen finden" spricht von Person A und B, der Platzhalter im Feld
+für die Listen-ID ist `900000000001`, und die Wochenlänge steht als
+`7 * 86400000`. Am Verhalten ändert sich nichts. Die alten Kennungen in den
+Kommentaren waren reine Belege, keine Reparaturdaten — keine Stelle im Code
+greift auf eine bestimmte Task- oder Thread-ID zu.

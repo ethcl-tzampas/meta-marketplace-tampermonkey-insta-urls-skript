@@ -1,0 +1,21 @@
+#!/bin/sh
+# Prueft vor jedem Push alle Commits, die der Push mitnimmt: jede
+# hinzugefuegte Zeile und jede Commit-Nachricht. Faengt auch Commits ab, die
+# mit --no-verify an den lokalen Hooks vorbei entstanden sind.
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-push: node fehlt — ohne Pruefung wird nicht gepusht." >&2
+  exit 1
+fi
+pruefer="$(git rev-parse --show-toplevel)/tools/datenpruefung.mjs"
+null=0000000000000000000000000000000000000000
+while read -r lokal_ref lokal_sha fern_ref fern_sha; do
+  [ "$lokal_sha" = "$null" ] && continue          # Loeschen eines Branches
+  if [ "$fern_sha" = "$null" ] || ! git cat-file -e "$fern_sha^{commit}" 2>/dev/null; then
+    # Neuer Branch oder umgeschriebene Historie: alles pruefen, was der
+    # Server noch nicht kennt.
+    node "$pruefer" --bereich "$lokal_sha" --not --remotes || exit 1
+  else
+    node "$pruefer" --bereich "$fern_sha..$lokal_sha" || exit 1
+  fi
+done
+exit 0
