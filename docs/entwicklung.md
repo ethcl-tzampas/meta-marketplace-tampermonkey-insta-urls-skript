@@ -2191,7 +2191,7 @@ und Commit-Nachrichten; die ganze Historie musste umgeschrieben werden.
 **Merksatz:** Nach jedem Push die Rohdatei gegenprüfen, nicht nur die lokale:
 
 ```bash
-curl -sS "https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-markierungen.user.js?frisch=$(date +%s)" \
+curl -sS "https://raw.githubusercontent.com/ethcl-tzampas/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-markierungen.user.js?frisch=$(date +%s)" \
   | tee /tmp/pruef.js | tail -1 && node --check /tmp/pruef.js && echo "GitHub-Stand ist in Ordnung"
 ```
 
@@ -2302,3 +2302,31 @@ für die Listen-ID ist `900000000001`, und die Wochenlänge steht als
 `7 * 86400000`. Am Verhalten ändert sich nichts. Die alten Kennungen in den
 Kommentaren waren reine Belege, keine Reparaturdaten — keine Stelle im Code
 greift auf eine bestimmte Task- oder Thread-ID zu.
+
+### Umzug zum Firmenkonto (10.0, November 2026)
+
+Das Repo gehört seit dem 27.11.2026 dem GitHub-Konto **`ethcl-tzampas`**
+(vorher Josias privates Konto). Alle Rohadressen lauten jetzt
+`https://raw.githubusercontent.com/ethcl-tzampas/meta-marketplace-tampermonkey-insta-urls-skript/main/…`.
+
+Mit dem Umzug geändert, in einem Commit:
+
+- `@updateURL` und `@downloadURL` in allen drei `*.user.js`,
+- `KERN_URL` im Lader (fest verdrahtet, wird leicht vergessen),
+- die Prüfadresse in Abschnitt 10, `git remote`.
+
+Versionen: Postfach-Skript **10.0**, Creator-Marketplace-Links **1.8**,
+Lader **2.8.1** — bewusst nicht 2.9, denn „2.8.x = Lader" ist das einzige
+Unterscheidungsmerkmal zum gleichnamigen Kernskript im Dashboard.
+
+**Gemessen direkt nach dem Transfer:** die alte Rohadresse unter dem
+früheren Konto lieferte weiter mit HTTP 200 aus. Die installierten Skripte
+fragen also noch die alte Adresse, ziehen von dort 10.0 und zeigen danach
+von selbst auf die neue. Eine Neuinstallation war nicht nötig. Sollte die
+alte Adresse irgendwann nicht mehr ausliefern, bleibt ein Browser, der noch
+vor 10.0 steht, stumm stehen — dann die neue Rohadresse einmal aufrufen und
+die Installation bestätigen (Name und Namespace sind gleich, der Speicher
+bleibt erhalten; **nicht** löschen und neu installieren).
+
+**Nie ein neues Repo unter dem alten Namen beim früheren Konto anlegen** —
+das beendet alle Weiterleitungen von GitHub dauerhaft.

@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         Postfach: eigene Markierungen
 // @namespace    local.inbox-followups
-// @version      2.8
+// @version      2.8.1
 // @description  Lädt den aktuellen Stand der Postfach-Markierungen aus dem Repo. Einmal installieren, danach reicht ein Neuladen der Seite.
 // @match        https://business.facebook.com/*
 // @run-at       document-idle
-// @updateURL    https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-lader.user.js
-// @downloadURL  https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-lader.user.js
+// @updateURL    https://raw.githubusercontent.com/ethcl-tzampas/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-lader.user.js
+// @downloadURL  https://raw.githubusercontent.com/ethcl-tzampas/meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-lader.user.js
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addValueChangeListener
@@ -58,7 +58,7 @@
 (function () {
   'use strict';
 
-  const KERN_URL = 'https://raw.githubusercontent.com/josialoos/'
+  const KERN_URL = 'https://raw.githubusercontent.com/ethcl-tzampas/'
     + 'meta-marketplace-tampermonkey-insta-urls-skript/main/postfach-markierungen.user.js';
   const CACHE = 'kern:cache:v1';
 

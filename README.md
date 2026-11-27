@@ -34,6 +34,7 @@ flowchart LR
 | [`creator-marketplace-links.user.js`](creator-marketplace-links.user.js) | Pille „zum Insta-Profil" im Creator Marketplace |
 | [`postfach-lader.user.js`](postfach-lader.user.js) | **Zurückgestellt, nicht installieren** — siehe Entwicklerdoku, Abschnitt 9 |
 
+Das Repo gehört dem GitHub-Konto `ethcl-tzampas` (seit 10.0; vorher lag es unter einem Privatkonto).
 Installation über die Rohadressen; beide Skripte aktualisieren sich danach
 selbst. Die ausführliche Anleitung samt Chrome- und ClickUp-Einstellungen
 steht in der [Entwicklerdoku](docs/entwicklung.md#8-einrichtung).

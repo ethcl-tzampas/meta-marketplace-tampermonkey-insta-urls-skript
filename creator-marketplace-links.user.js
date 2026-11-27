@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Creator Marketplace → Instagram-Profillinks
 // @namespace    local.creator-marketplace-links
-// @version      1.7
+// @version      1.8
 // @description  Blendet unter Creator-Handles im Meta Creator Marketplace eine Pille "zum Insta-Profil ↗" ein, die direkt zu instagram.com/<handle> führt
 // @match        https://business.facebook.com/*
 // @match        https://*.business.facebook.com/*
 // @match        https://www.facebook.com/*
 // @run-at       document-idle
-// @updateURL    https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/creator-marketplace-links.user.js
-// @downloadURL  https://raw.githubusercontent.com/josialoos/meta-marketplace-tampermonkey-insta-urls-skript/main/creator-marketplace-links.user.js
+// @updateURL    https://raw.githubusercontent.com/ethcl-tzampas/meta-marketplace-tampermonkey-insta-urls-skript/main/creator-marketplace-links.user.js
+// @downloadURL  https://raw.githubusercontent.com/ethcl-tzampas/meta-marketplace-tampermonkey-insta-urls-skript/main/creator-marketplace-links.user.js
 // @grant        none
 // ==/UserScript==
 
